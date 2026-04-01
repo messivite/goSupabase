@@ -19,6 +19,8 @@
 [![License](https://img.shields.io/badge/License-MIT-22c55e?style=flat-square)](LICENSE)
 [![Last Commit](https://img.shields.io/github/last-commit/messivite/goSupabase?style=flat-square)](https://github.com/messivite/goSupabase/commits/main)
 
+**[Full Documentation](https://messivite.github.io/goSupabase/)** — guides, CLI reference, auth, deployment, and more.
+
 ### Quick Links
 
 - [Quick Start](#quick-start)
