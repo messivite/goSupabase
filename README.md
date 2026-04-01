@@ -19,12 +19,15 @@
 [![License](https://img.shields.io/badge/License-MIT-22c55e?style=flat-square)](LICENSE)
 [![Last Commit](https://img.shields.io/github/last-commit/messivite/goSupabase?style=flat-square)](https://github.com/messivite/goSupabase/commits/main)
 
+**[Full Documentation](https://messivite.github.io/goSupabase/)** — guides, CLI reference, auth, deployment, and more.
+
 ### Quick Links
 
 - [Quick Start](#quick-start)
 - [Setup](#setup)
 - [Developer Flows](#developer-flows-copypaste)
 - [Auth Middleware](#auth-middleware)
+- [JWT and JWKS (Supabase)](#jwt-and-jwks-supabase)
 - [JWT Mode Changes](#jwt-mode-changes-what-happens)
 - [YAML Schema](#yaml-schema)
 - [Environment Variables](#environment-variables)
@@ -331,13 +334,21 @@ go run ./cmd/server
 
 If mode/token type mismatch occurs, auth endpoints return `401 invalid token`.
 
-### JWKS File Placement
+### JWT and JWKS (Supabase)
 
-You do not need to store `jwks.json` in your project.
+Supabase signs access tokens with **HS256** (symmetric, verified with `SUPABASE_JWT_SECRET`) or **ES256** (asymmetric, verified with public keys from JWKS). The JWT **header** (`alg`, `kid`) decides which path applies; your **anon** / **service role** keys are client identifiers, not the signing key used for verification.
 
-- Runtime fetches keys from:
-  - `SUPABASE_URL/auth/v1/.well-known/jwks.json`
-- Local `jwks.json` is only optional for manual debugging.
+- **JWKS URL (runtime):** `{SUPABASE_URL}/auth/v1/.well-known/jwks.json` — keys are fetched automatically; you do not need to ship `jwks.json` in the repo.
+- **Supported JWKS keys for ES256:** `kty: EC`, `crv: P-256`, with `kid`, `x`, `y` as in the live JWKS document. The token header’s `kid` must match an entry in that set (relevant after [key rotation](https://supabase.com/docs/guides/auth/signing-keys)).
+- **Validation mode:** Prefer `SUPABASE_JWT_VALIDATION_MODE=auto` unless you must force only `jwks` or only `hs256` (see table above). A wrong mode for your project’s current signing setup produces `401 invalid token`.
+
+Official Supabase background: [JWTs](https://supabase.com/docs/guides/auth/jwts), [JWT signing keys](https://supabase.com/docs/guides/auth/signing-keys).
+
+**Longer guide (algorithms, troubleshooting, caching):** [Documentation — Auth & JWT](https://messivite.github.io/goSupabase/advanced/auth.html).
+
+### Local `jwks.json` (optional)
+
+The server does **not** read a local `jwks.json` file. Use one only to compare structure and `kid` values with the live endpoint when debugging.
 
 ### Accessing Claims
 

@@ -1,0 +1,45 @@
+# Developer Flows
+
+Copy-paste recipes for common scenarios.
+
+## Flow 1: New API project from scratch
+
+```bash
+gosupabase new my-api
+cd my-api
+go mod tidy
+gosupabase setup
+gosupabase add endpoint "GET /users"
+gosupabase add endpoint "POST /users" --auth
+gosupabase gen
+go build ./...
+go run ./cmd/server
+```
+
+## Flow 2: Existing project integration
+
+```bash
+gosupabase init
+gosupabase setup --from-file ./supabase.env
+gosupabase add endpoint "GET /health"
+gosupabase add endpoint "PATCH /tracks/:id" --auth
+gosupabase gen --handlers-only
+go test ./...
+```
+
+## Flow 3: Custom output layout
+
+```bash
+gosupabase gen --server-dir pkg/server --handlers-dir pkg/handler
+```
+
+Output directories can also be configured in `.gosupabase.yaml` or `api.yaml` — see [Configuration](/guide/configuration).
+
+## Flow 4: Add an endpoint and re-generate
+
+```bash
+gosupabase add endpoint "DELETE /tracks/:id" --auth
+gosupabase gen
+```
+
+Only missing handler files are created; existing handlers are never overwritten. The server wires routes from `api.yaml` at runtime, so you can also add endpoints to YAML manually and just register a handler — no `gen` required.
