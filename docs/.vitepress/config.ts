@@ -33,6 +33,15 @@ export default defineConfig({
     sidebar: {
       '/guide/': [
         {
+          text: 'Common questions',
+          items: [
+            {
+              text: 'How do I verify Supabase JWTs and JWKS?',
+              link: '/advanced/auth#how-do-i-verify-supabase-jwts-and-jwks',
+            },
+          ],
+        },
+        {
           text: 'Getting Started',
           items: [
             { text: 'Introduction', link: '/guide/introduction' },
@@ -51,6 +60,15 @@ export default defineConfig({
       ],
       '/reference/': [
         {
+          text: 'Common questions',
+          items: [
+            {
+              text: 'How do I verify Supabase JWTs and JWKS?',
+              link: '/advanced/auth#how-do-i-verify-supabase-jwts-and-jwks',
+            },
+          ],
+        },
+        {
           text: 'Reference',
           items: [
             { text: 'CLI Commands', link: '/reference/cli' },
@@ -64,7 +82,11 @@ export default defineConfig({
         {
           text: 'Advanced',
           items: [
-            { text: 'Auth & JWT', link: '/advanced/auth' },
+            {
+              text: 'How do I verify Supabase JWTs and JWKS?',
+              link: '/advanced/auth#how-do-i-verify-supabase-jwts-and-jwks',
+            },
+            { text: 'Auth & JWT (full guide)', link: '/advanced/auth' },
             { text: 'Deployment', link: '/advanced/deployment' },
             { text: 'CI/CD & Releases', link: '/advanced/ci-cd' },
           ],

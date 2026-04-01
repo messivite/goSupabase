@@ -14,7 +14,9 @@
 |----------|---------|-------------|
 | `PORT` | `8080` | Server port |
 | `SUPABASE_SERVICE_ROLE_KEY` | — | Service role key (server-side only, **never expose**) |
-| `SUPABASE_JWT_VALIDATION_MODE` | `auto` | `auto`, `jwks`, or `hs256` |
+| `SUPABASE_JWT_VALIDATION_MODE` | `auto` | `auto`, `jwks`, or `hs256` — see [Auth & JWT](/advanced/auth) for how this interacts with HS256 vs ES256 tokens and JWKS |
+
+`SUPABASE_URL` must be the project API URL (e.g. `https://xxxx.supabase.co`) so JWKS can be loaded from `/auth/v1/.well-known/jwks.json` when tokens use **ES256**.
 
 ## Setup
 
