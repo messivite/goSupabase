@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -319,5 +320,65 @@ func TestSupabaseAuthExtractsUserMetadataRolesString(t *testing.T) {
 	final.ServeHTTP(rr, req)
 	if rr.Code != http.StatusOK {
 		t.Errorf("status = %d, want %d", rr.Code, http.StatusOK)
+	}
+}
+
+func TestRequireRolesCaseInsensitive(t *testing.T) {
+	handler := RequireRoles("Admin")(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+	req := httptest.NewRequest("GET", "/", nil)
+	ctx := auth.WithClaims(req.Context(), &auth.Claims{Role: "admin"})
+	req = req.WithContext(ctx)
+	rr := httptest.NewRecorder()
+	handler.ServeHTTP(rr, req)
+	if rr.Code != http.StatusOK {
+		t.Errorf("status = %d, want %d", rr.Code, http.StatusOK)
+	}
+}
+
+func TestSupabaseAuthExtractsTopLevelRolesArray(t *testing.T) {
+	claims := map[string]interface{}{
+		"sub":   "user-123",
+		"exp":   float64(time.Now().Add(time.Hour).Unix()),
+		"roles": []interface{}{"admin"},
+	}
+	token := makeToken(claims, testSecret)
+	authMw := SupabaseAuth(testSecret, "", "auto")
+	roleMw := RequireRoles("admin")
+	final := authMw(roleMw(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	})))
+	req := httptest.NewRequest("GET", "/", nil)
+	req.Header.Set("Authorization", "Bearer "+token)
+	rr := httptest.NewRecorder()
+	final.ServeHTTP(rr, req)
+	if rr.Code != http.StatusOK {
+		t.Errorf("status = %d, want %d", rr.Code, http.StatusOK)
+	}
+}
+
+func TestExtractRolesFromMultipleLocations(t *testing.T) {
+	payload := []byte(`{
+		"role":"authenticated",
+		"roles":["editor"],
+		"app_metadata":{"roles":["admin"]},
+		"user_metadata":{"roles":"owner"}
+	}`)
+	got := extractRoles(payload, "authenticated", nil)
+	joined := strings.Join(got, ",")
+	for _, expected := range []string{"authenticated", "editor", "admin", "owner"} {
+		if !strings.Contains(joined, expected) {
+			t.Fatalf("expected role %q in %v", expected, got)
+		}
+	}
+}
+
+func TestAddInterfaceRolesIgnoresUnsupportedType(t *testing.T) {
+	var got []string
+	add := func(v string) { got = append(got, v) }
+	addInterfaceRoles(123, add)
+	if len(got) != 0 {
+		t.Fatalf("expected no roles added, got %v", got)
 	}
 }

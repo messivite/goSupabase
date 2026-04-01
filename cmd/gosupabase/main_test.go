@@ -1,8 +1,10 @@
 package main
 
 import (
+	"bufio"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 )
@@ -38,5 +40,103 @@ func TestSnapshotWatchedFiles(t *testing.T) {
 	}
 	if len(snap) < 2 {
 		t.Fatalf("expected at least 2 watched files, got %d", len(snap))
+	}
+}
+
+func TestPromptValidationModeDefaultOnInvalid(t *testing.T) {
+	orig := stdinReader
+	stdinReader = bufio.NewReader(strings.NewReader("invalid\n"))
+	defer func() { stdinReader = orig }()
+
+	got := promptValidationMode("auto")
+	if got != "auto" {
+		t.Fatalf("promptValidationMode invalid input = %q, want auto", got)
+	}
+}
+
+func TestPromptConflictChoices(t *testing.T) {
+	orig := stdinReader
+	defer func() { stdinReader = orig }()
+
+	stdinReader = bufio.NewReader(strings.NewReader("o\n"))
+	if got := promptConflict(".env"); got != policyOverwrite {
+		t.Fatalf("expected overwrite policy, got %v", got)
+	}
+	stdinReader = bufio.NewReader(strings.NewReader("m\n"))
+	if got := promptConflict(".env"); got != policyMerge {
+		t.Fatalf("expected merge policy, got %v", got)
+	}
+	stdinReader = bufio.NewReader(strings.NewReader("s\n"))
+	if got := promptConflict(".env"); got != policySkip {
+		t.Fatalf("expected skip policy, got %v", got)
+	}
+}
+
+func TestWriteAndMergeEnvFile(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, ".env")
+	keys := []string{"PORT", "SUPABASE_URL"}
+	initial := map[string]string{"PORT": "8080", "SUPABASE_URL": "https://a.supabase.co"}
+	if err := writeEnvFile(path, initial, keys); err != nil {
+		t.Fatalf("writeEnvFile: %v", err)
+	}
+
+	update := map[string]string{"PORT": "9090", "SUPABASE_URL": "https://b.supabase.co"}
+	if err := mergeEnvFile(path, update, keys); err != nil {
+		t.Fatalf("mergeEnvFile: %v", err)
+	}
+
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := string(data)
+	// Merge keeps existing values.
+	if !strings.Contains(s, "PORT=8080") {
+		t.Fatalf("expected existing PORT to stay, got: %s", s)
+	}
+}
+
+func TestSetupFromFileCreatesFiles(t *testing.T) {
+	origWD, _ := os.Getwd()
+	dir := t.TempDir()
+	_ = os.Chdir(dir)
+	defer os.Chdir(origWD)
+
+	source := "source.env"
+	content := "PORT=9090\nSUPABASE_URL=https://x.supabase.co\nSUPABASE_ANON_KEY=anon\nSUPABASE_JWT_SECRET=secret\nSERVER_DIR=pkg/server\nHANDLERS_DIR=pkg/handlers\n"
+	if err := os.WriteFile(source, []byte(content), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	setupFromFile(source)
+
+	if _, err := os.Stat(".env"); err != nil {
+		t.Fatalf("expected .env: %v", err)
+	}
+	if _, err := os.Stat(".gosupabase.yaml"); err != nil {
+		t.Fatalf("expected .gosupabase.yaml: %v", err)
+	}
+}
+
+func TestSetupInteractiveCreatesFiles(t *testing.T) {
+	origWD, _ := os.Getwd()
+	dir := t.TempDir()
+	_ = os.Chdir(dir)
+	defer os.Chdir(origWD)
+
+	origReader := stdinReader
+	// port, url, anon, secret, validation mode, include service key=no, server dir, handlers dir
+	input := "8080\nhttps://x.supabase.co\nanon\nsecret\nauto\nn\nserver\nhandlers\n"
+	stdinReader = bufio.NewReader(strings.NewReader(input))
+	defer func() { stdinReader = origReader }()
+
+	setupInteractive()
+
+	if _, err := os.Stat(".env"); err != nil {
+		t.Fatalf("expected .env: %v", err)
+	}
+	if _, err := os.Stat(".gosupabase.yaml"); err != nil {
+		t.Fatalf("expected .gosupabase.yaml: %v", err)
 	}
 }

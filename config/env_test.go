@@ -105,3 +105,46 @@ func TestResolveOutputPathsFlagsOverrideAll(t *testing.T) {
 		t.Errorf("handlersDir = %q, want %q", paths.HandlersDir, "flag-handlers")
 	}
 }
+
+func TestParseEnvFileSkipsInvalidAndComments(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, ".env")
+	content := `
+# comment
+PORT=8080
+INVALID_LINE
+SUPABASE_URL=https://example.supabase.co
+`
+	if err := os.WriteFile(path, []byte(content), 0644); err != nil {
+		t.Fatal(err)
+	}
+	got, err := ParseEnvFile(path)
+	if err != nil {
+		t.Fatalf("ParseEnvFile error: %v", err)
+	}
+	if got["PORT"] != "8080" {
+		t.Fatalf("PORT=%q", got["PORT"])
+	}
+	if got["SUPABASE_URL"] != "https://example.supabase.co" {
+		t.Fatalf("SUPABASE_URL=%q", got["SUPABASE_URL"])
+	}
+	if _, ok := got["INVALID_LINE"]; ok {
+		t.Fatal("invalid line should be ignored")
+	}
+}
+
+func TestParseEnvFileLastValueWins(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, ".env")
+	content := "PORT=8080\nPORT=9090\n"
+	if err := os.WriteFile(path, []byte(content), 0644); err != nil {
+		t.Fatal(err)
+	}
+	got, err := ParseEnvFile(path)
+	if err != nil {
+		t.Fatalf("ParseEnvFile error: %v", err)
+	}
+	if got["PORT"] != "9090" {
+		t.Fatalf("expected last value to win, got %q", got["PORT"])
+	}
+}
