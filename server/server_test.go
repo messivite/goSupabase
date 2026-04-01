@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/go-chi/chi/v5"
 	"github.com/mustafaaksoy/gosupabase/handlers"
 )
 
@@ -90,5 +91,29 @@ endpoints:
 	h.ServeHTTP(rr, req)
 	if rr.Code != http.StatusNotFound {
 		t.Fatalf("expected 404 for skipped handler route, got %d", rr.Code)
+	}
+}
+
+func TestAddRouteRegistersKnownMethods(t *testing.T) {
+	methods := []string{
+		http.MethodGet,
+		http.MethodPost,
+		http.MethodPut,
+		http.MethodPatch,
+		http.MethodDelete,
+	}
+
+	for _, m := range methods {
+		r := chi.NewRouter()
+		addRoute(r, m, "/x", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusNoContent)
+		}))
+
+		req := httptest.NewRequest(m, "/x", nil)
+		rr := httptest.NewRecorder()
+		r.ServeHTTP(rr, req)
+		if rr.Code != http.StatusNoContent {
+			t.Fatalf("method %s status = %d, want %d", m, rr.Code, http.StatusNoContent)
+		}
 	}
 }
