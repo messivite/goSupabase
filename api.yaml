@@ -1,0 +1,43 @@
+version: "1"
+basePath: /api
+output:
+  serverDir: server
+  handlersDir: handlers
+
+endpoints:
+  - method: GET
+    path: /health
+    handler: Health
+    auth: false
+
+  - method: GET
+    path: /tracks
+    handler: ListTracks
+    auth: false
+
+  - method: POST
+    path: /tracks
+    handler: CreateTrack
+    auth: true
+
+  - method: PATCH
+    path: /tracks/:id
+    handler: UpdateTrack
+    auth: true
+
+  - method: DELETE
+    path: /tracks/:id
+    handler: DeleteTrack
+    auth: true
+    roles:
+      - admin
+
+  - method: GET
+    path: /playlists
+    handler: ListPlaylists
+    auth: false
+
+  - method: POST
+    path: /playlists
+    handler: CreatePlaylist
+    auth: true
