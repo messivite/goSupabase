@@ -1,5 +1,9 @@
 # goSupaBase
 
+**[Documentation](https://messivite.github.io/goSupabase/)** — full site: guides, CLI reference, auth & JWKS, deployment, Postman, and more.
+
+**Postman:** import [`postman/goSupabase.postman_collection.json`](postman/goSupabase.postman_collection.json) · details in [`postman/README.md`](postman/README.md).
+
 > <img src="https://cdn.simpleicons.org/supabase/3ECF8E" alt="Supabase" width="22" height="22" align="absmiddle" /> Build Go APIs fast with a Supabase backend: YAML-first endpoint design, runtime wiring, JWT auth, role guards, and hot-reload DX.
 
 [![Go Reference](https://pkg.go.dev/badge/github.com/messivite/gosupabase.svg)](https://pkg.go.dev/github.com/messivite/gosupabase)
@@ -19,12 +23,9 @@
 [![License](https://img.shields.io/badge/License-MIT-22c55e?style=flat-square)](LICENSE)
 [![Last Commit](https://img.shields.io/github/last-commit/messivite/goSupabase?style=flat-square)](https://github.com/messivite/goSupabase/commits/main)
 
-**[Full Documentation](https://messivite.github.io/goSupabase/)** — guides, CLI reference, auth, deployment, and more.
-
-**Postman:** import [`postman/goSupabase.postman_collection.json`](postman/goSupabase.postman_collection.json) (see [`postman/README.md`](postman/README.md)).
-
 ### Quick Links
 
+- [Documentation (site)](https://messivite.github.io/goSupabase/)
 - [Quick Start](#quick-start)
 - [Setup](#setup)
 - [Developer Flows](#developer-flows-copypaste)
