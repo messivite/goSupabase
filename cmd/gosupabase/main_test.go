@@ -229,3 +229,131 @@ func TestCmdGenHandlersOnly(t *testing.T) {
 		t.Fatalf("expected no generated server.go in handlers-only mode, got err=%v", err)
 	}
 }
+
+func TestApplyFileWithPolicySkipExistingEnv(t *testing.T) {
+	origWD, _ := os.Getwd()
+	dir := t.TempDir()
+	_ = os.Chdir(dir)
+	defer os.Chdir(origWD)
+
+	if err := os.WriteFile(".env", []byte("PORT=1111\n"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	envMap := map[string]string{"PORT": "8080"}
+	keys := []string{"PORT"}
+
+	origReader := stdinReader
+	stdinReader = bufio.NewReader(strings.NewReader("s\n"))
+	defer func() { stdinReader = origReader }()
+
+	applyFileWithPolicy(".env", envMap, keys, "server", "handlers", true)
+
+	data, err := os.ReadFile(".env")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.TrimSpace(string(data)) != "PORT=1111" {
+		t.Fatalf("expected existing file to stay, got: %q", string(data))
+	}
+}
+
+func TestApplyFileWithPolicyMergeEnv(t *testing.T) {
+	origWD, _ := os.Getwd()
+	dir := t.TempDir()
+	_ = os.Chdir(dir)
+	defer os.Chdir(origWD)
+
+	if err := os.WriteFile(".env", []byte("PORT=1111\n"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	envMap := map[string]string{
+		"PORT":         "8080",
+		"SUPABASE_URL": "https://x.supabase.co",
+	}
+	keys := []string{"PORT", "SUPABASE_URL"}
+
+	origReader := stdinReader
+	stdinReader = bufio.NewReader(strings.NewReader("m\n"))
+	defer func() { stdinReader = origReader }()
+
+	applyFileWithPolicy(".env", envMap, keys, "server", "handlers", true)
+
+	data, err := os.ReadFile(".env")
+	if err != nil {
+		t.Fatal(err)
+	}
+	out := string(data)
+	if !strings.Contains(out, "PORT=1111") {
+		t.Fatalf("expected existing key to remain, got: %q", out)
+	}
+	if !strings.Contains(out, "SUPABASE_URL=https://x.supabase.co") {
+		t.Fatalf("expected missing key to be added, got: %q", out)
+	}
+}
+
+func TestApplyFileWithPolicyOverwriteYaml(t *testing.T) {
+	origWD, _ := os.Getwd()
+	dir := t.TempDir()
+	_ = os.Chdir(dir)
+	defer os.Chdir(origWD)
+
+	if err := os.WriteFile(".gosupabase.yaml", []byte("output:\n  serverDir: old\n  handlersDir: old\n"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	origReader := stdinReader
+	stdinReader = bufio.NewReader(strings.NewReader("o\n"))
+	defer func() { stdinReader = origReader }()
+
+	applyFileWithPolicy(".gosupabase.yaml", map[string]string{}, nil, "pkg/server", "pkg/handlers", false)
+
+	data, err := os.ReadFile(".gosupabase.yaml")
+	if err != nil {
+		t.Fatal(err)
+	}
+	out := string(data)
+	if !strings.Contains(out, "serverDir: pkg/server") || !strings.Contains(out, "handlersDir: pkg/handlers") {
+		t.Fatalf("unexpected yaml output: %q", out)
+	}
+}
+
+func TestSnapshotWatchedFilesSkipsIgnoredDirs(t *testing.T) {
+	dir := t.TempDir()
+	if err := os.MkdirAll(filepath.Join(dir, ".git"), 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(filepath.Join(dir, ".cursor"), 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(filepath.Join(dir, "node_modules"), 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(filepath.Join(dir, "ok"), 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, ".git", "x.go"), []byte("package x"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, ".cursor", "y.go"), []byte("package y"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "node_modules", "z.go"), []byte("package z"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	okPath := filepath.Join(dir, "ok", "main.go")
+	if err := os.WriteFile(okPath, []byte("package main"), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	snap, err := snapshotWatchedFiles(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for p := range snap {
+		if strings.Contains(p, ".git") || strings.Contains(p, ".cursor") || strings.Contains(p, "node_modules") {
+			t.Fatalf("ignored directory file should not be watched: %s", p)
+		}
+	}
+	if _, ok := snap[okPath]; !ok {
+		t.Fatalf("expected regular go file to be watched: %s", okPath)
+	}
+}
