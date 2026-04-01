@@ -1,3 +1,4 @@
 .env
+.cursor/
 jwks.json
 *.jwks.json
