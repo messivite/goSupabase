@@ -7,6 +7,10 @@
 [![JWT](https://img.shields.io/badge/JWT-HS256%20%7C%20ES256-orange?style=for-the-badge)](#auth-middleware)
 [![JWKS](https://img.shields.io/badge/JWKS-Auto%20Fetch-2563eb?style=for-the-badge)](#jwks-file-placement)
 [![Hot Reload](https://img.shields.io/badge/Dev-gosupabase%20dev-16a34a?style=for-the-badge)](#quick-start)
+[![CI](https://img.shields.io/github/actions/workflow/status/messivite/goSupabase/ci.yml?branch=main&style=for-the-badge&label=CI)](https://github.com/messivite/goSupabase/actions/workflows/ci.yml)
+[![Tests](https://img.shields.io/github/actions/workflow/status/messivite/goSupabase/ci.yml?branch=main&style=for-the-badge&label=Tests)](https://github.com/messivite/goSupabase/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/actions/workflow/status/messivite/goSupabase/release.yml?style=for-the-badge&label=Release)](https://github.com/messivite/goSupabase/actions/workflows/release.yml)
+[![Coverage](https://img.shields.io/codecov/c/github/messivite/goSupabase?style=for-the-badge&label=Coverage)](https://app.codecov.io/gh/messivite/goSupabase)
 
 [![Router](https://img.shields.io/badge/Router-chi-f43f5e?style=flat-square)](https://github.com/go-chi/chi)
 [![Codegen](https://img.shields.io/badge/Codegen-Handlers%20%2B%20Server-0ea5e9?style=flat-square)](#what-this-package-gives-you)
@@ -23,6 +27,7 @@
 - [JWT Mode Changes](#jwt-mode-changes-what-happens)
 - [YAML Schema](#yaml-schema)
 - [Environment Variables](#environment-variables)
+- [CI/CD and Releases](#cicd-and-releases)
 
 ## Features
 
@@ -432,6 +437,38 @@ go mod tidy
 go build ./...
 go test ./...
 ```
+
+## CI/CD and Releases
+
+This repository includes two GitHub Actions workflows:
+
+- `CI` (`.github/workflows/ci.yml`)
+  - Runs on push/PR to `main`
+  - Checks `go mod tidy` consistency
+  - Runs `go build ./...`, `go test ./...`, and `go vet ./...`
+
+- `Release` (`.github/workflows/release.yml`)
+  - **Automatic release** when pushing tags like `v1.2.3`
+  - **Manual release** from GitHub Actions UI via `workflow_dispatch`
+  - Builds binaries for Linux/macOS/Windows and uploads `checksums.txt`
+
+### Automatic release (tag-based)
+
+```bash
+git tag v0.1.0
+git push origin v0.1.0
+```
+
+### Manual release (GitHub UI)
+
+1. Go to **Actions** -> **Release** workflow
+2. Click **Run workflow**
+3. Provide:
+   - `tag` (example: `v0.1.0`)
+   - `target` (`main` by default)
+   - `make_latest` (`true/false`)
+
+The workflow creates the tag (if needed), builds artifacts, and publishes a GitHub Release.
 
 ## License
 

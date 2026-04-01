@@ -262,3 +262,62 @@ func TestSupabaseAuthNonHS256Algorithm(t *testing.T) {
 		t.Errorf("status = %d, want %d", rr.Code, http.StatusUnauthorized)
 	}
 }
+
+func TestSupabaseAuthModeJWKSRejectsHS256(t *testing.T) {
+	claims := map[string]interface{}{
+		"sub": "user-123",
+		"exp": float64(time.Now().Add(time.Hour).Unix()),
+	}
+	token := makeToken(claims, testSecret)
+	handler := SupabaseAuth(testSecret, "", "jwks")(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		t.Fatal("handler should not be called")
+	}))
+	req := httptest.NewRequest("GET", "/", nil)
+	req.Header.Set("Authorization", "Bearer "+token)
+	rr := httptest.NewRecorder()
+	handler.ServeHTTP(rr, req)
+	if rr.Code != http.StatusUnauthorized {
+		t.Errorf("status = %d, want %d", rr.Code, http.StatusUnauthorized)
+	}
+}
+
+func TestSupabaseAuthModeHS256AllowsHS256(t *testing.T) {
+	claims := map[string]interface{}{
+		"sub": "user-123",
+		"exp": float64(time.Now().Add(time.Hour).Unix()),
+	}
+	token := makeToken(claims, testSecret)
+	handler := SupabaseAuth(testSecret, "", "hs256")(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+	req := httptest.NewRequest("GET", "/", nil)
+	req.Header.Set("Authorization", "Bearer "+token)
+	rr := httptest.NewRecorder()
+	handler.ServeHTTP(rr, req)
+	if rr.Code != http.StatusOK {
+		t.Errorf("status = %d, want %d", rr.Code, http.StatusOK)
+	}
+}
+
+func TestSupabaseAuthExtractsUserMetadataRolesString(t *testing.T) {
+	claims := map[string]interface{}{
+		"sub": "user-123",
+		"exp": float64(time.Now().Add(time.Hour).Unix()),
+		"user_metadata": map[string]interface{}{
+			"roles": "admin",
+		},
+	}
+	token := makeToken(claims, testSecret)
+	authMw := SupabaseAuth(testSecret, "", "auto")
+	roleMw := RequireRoles("admin")
+	final := authMw(roleMw(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	})))
+	req := httptest.NewRequest("GET", "/", nil)
+	req.Header.Set("Authorization", "Bearer "+token)
+	rr := httptest.NewRecorder()
+	final.ServeHTTP(rr, req)
+	if rr.Code != http.StatusOK {
+		t.Errorf("status = %d, want %d", rr.Code, http.StatusOK)
+	}
+}

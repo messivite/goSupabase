@@ -24,6 +24,23 @@ func TestLoadEnvFromEnvVar(t *testing.T) {
 	}
 }
 
+func TestLoadEnvDefaultValidationMode(t *testing.T) {
+	os.Unsetenv("SUPABASE_JWT_VALIDATION_MODE")
+	cfg := LoadEnv()
+	if cfg.SupabaseJWTValidationMode != "auto" {
+		t.Errorf("validation mode = %q, want %q", cfg.SupabaseJWTValidationMode, "auto")
+	}
+}
+
+func TestLoadEnvValidationModeFromEnv(t *testing.T) {
+	os.Setenv("SUPABASE_JWT_VALIDATION_MODE", "jwks")
+	defer os.Unsetenv("SUPABASE_JWT_VALIDATION_MODE")
+	cfg := LoadEnv()
+	if cfg.SupabaseJWTValidationMode != "jwks" {
+		t.Errorf("validation mode = %q, want %q", cfg.SupabaseJWTValidationMode, "jwks")
+	}
+}
+
 func TestResolveOutputPathsDefaults(t *testing.T) {
 	dir := t.TempDir()
 	orig, _ := os.Getwd()
