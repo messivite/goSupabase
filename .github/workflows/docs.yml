@@ -3,21 +3,14 @@ name: Docs
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
 
+# No `paths` filter: every push to main redeploys the site so README-only merges
+# don’t leave stale Pages. Ensure repo Settings → Pages → Source = GitHub Actions only
+# (not “branch /docs” — that uses Jekyll and will NOT show the VitePress build).
 on:
   push:
     branches: ["main"]
-    paths:
-      - "docs/**"
-      - "package.json"
-      - "package-lock.json"
-      - ".github/workflows/docs.yml"
   pull_request:
     branches: ["main"]
-    paths:
-      - "docs/**"
-      - "package.json"
-      - "package-lock.json"
-      - ".github/workflows/docs.yml"
   workflow_dispatch:
 
 permissions:
