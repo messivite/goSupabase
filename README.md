@@ -21,6 +21,8 @@
 
 **[Full Documentation](https://messivite.github.io/goSupabase/)** — guides, CLI reference, auth, deployment, and more.
 
+**Postman:** import [`postman/goSupabase.postman_collection.json`](postman/goSupabase.postman_collection.json) (see [`postman/README.md`](postman/README.md)).
+
 ### Quick Links
 
 - [Quick Start](#quick-start)

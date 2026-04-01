@@ -75,6 +75,7 @@ export default defineConfig({
             { text: 'YAML Schema', link: '/reference/yaml-schema' },
             { text: 'Environment Variables', link: '/reference/environment-variables' },
             { text: 'Project Structure', link: '/reference/project-structure' },
+            { text: 'Postman collection', link: '/reference/postman' },
           ],
         },
       ],
