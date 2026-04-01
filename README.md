@@ -466,11 +466,17 @@ git push origin v0.1.0
 1. Go to **Actions** -> **Release** workflow
 2. Click **Run workflow**
 3. Provide:
-   - `tag` (example: `v0.1.0`)
+   - `tag` (optional, example: `v0.1.0`)
+   - `bump` (`patch`/`minor`/`major`) when `tag` is empty
    - `target` (`main` by default)
    - `make_latest` (`true/false`)
 
-The workflow creates the tag (if needed), builds artifacts, and publishes a GitHub Release.
+If `tag` is empty, workflow auto-calculates the next semver from the latest `v*` tag:
+- `patch` -> `vX.Y.(Z+1)`
+- `minor` -> `vX.(Y+1).0`
+- `major` -> `v(X+1).0.0`
+
+Then it creates the tag, runs quality gate, builds artifacts, and publishes a GitHub Release.
 
 ## License
 
