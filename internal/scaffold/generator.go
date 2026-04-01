@@ -7,7 +7,7 @@ import (
 	"strings"
 	"text/template"
 
-	yamlcfg "github.com/messivite/gosupabase/internal/yaml"
+	yamlcfg "github.com/messivite/goSupabase/internal/yaml"
 )
 
 type GenerateOptions struct {
