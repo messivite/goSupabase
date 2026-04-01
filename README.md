@@ -2,6 +2,19 @@
 
 YAML-driven API scaffolding, code generation, and runtime routing for Go + Supabase projects.
 
+[![Go Version](https://img.shields.io/badge/Go-1.22%2B-00ADD8?logo=go)](https://go.dev/)
+[![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+[![Supabase](https://img.shields.io/badge/Supabase-Enabled-3ECF8E?logo=supabase&logoColor=white)](https://supabase.com/)
+[![Router](https://img.shields.io/badge/Router-chi-ff6b6b)](https://github.com/go-chi/chi)
+[![YAML First](https://img.shields.io/badge/API%20Design-YAML--First-6f42c1)](#yaml-schema)
+[![JWT](https://img.shields.io/badge/Auth-JWT%20HS256%20%7C%20ES256-orange)](#auth-middleware)
+[![JWKS](https://img.shields.io/badge/JWKS-Supported-blue)](#jwks-file-placement)
+[![RBAC](https://img.shields.io/badge/Authorization-RBAC-critical)](#role-guard)
+[![Codegen](https://img.shields.io/badge/Codegen-Handlers%20%2B%20Server-0ea5e9)](#what-this-package-gives-you)
+[![Hot Reload](https://img.shields.io/badge/Dev-gosupabase%20dev-22c55e)](#quick-start)
+[![Repo Stars](https://img.shields.io/github/stars/messivite/goSupabase?style=social)](https://github.com/messivite/goSupabase)
+[![Last Commit](https://img.shields.io/github/last-commit/messivite/goSupabase)](https://github.com/messivite/goSupabase/commits/main)
+
 ## Features
 
 - **YAML endpoint definitions** — single `api.yaml` as the source of truth
