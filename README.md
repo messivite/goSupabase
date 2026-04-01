@@ -43,7 +43,7 @@
 ### New Project
 
 ```bash
-go install github.com/mustafaaksoy/gosupabase/cmd/gosupabase@latest
+go install github.com/messivite/goSupabase/cmd/gosupabase@latest
 
 gosupabase new my-api
 cd my-api
@@ -326,7 +326,7 @@ You do not need to store `jwks.json` in your project.
 ### Accessing Claims
 
 ```go
-import "github.com/mustafaaksoy/gosupabase/auth"
+import "github.com/messivite/goSupabase/auth"
 
 func MyHandler(w http.ResponseWriter, r *http.Request) {
     claims := auth.GetClaims(r.Context())

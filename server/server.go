@@ -7,9 +7,9 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	chiMiddleware "github.com/go-chi/chi/v5/middleware"
-	"github.com/mustafaaksoy/gosupabase/handlers"
-	yamlcfg "github.com/mustafaaksoy/gosupabase/internal/yaml"
-	"github.com/mustafaaksoy/gosupabase/middleware"
+	"github.com/messivite/goSupabase/handlers"
+	yamlcfg "github.com/messivite/goSupabase/internal/yaml"
+	"github.com/messivite/goSupabase/middleware"
 )
 
 // NewHandler loads api.yaml at runtime and builds a chi router with all

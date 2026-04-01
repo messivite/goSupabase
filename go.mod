@@ -1,4 +1,4 @@
-module github.com/mustafaaksoy/gosupabase
+module github.com/messivite/goSupabase
 
 go 1.22
 

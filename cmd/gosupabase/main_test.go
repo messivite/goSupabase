@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	yamlcfg "github.com/mustafaaksoy/gosupabase/internal/yaml"
+	yamlcfg "github.com/messivite/goSupabase/internal/yaml"
 )
 
 func TestSameSnapshot(t *testing.T) {

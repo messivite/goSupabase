@@ -4,9 +4,9 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/mustafaaksoy/gosupabase/config"
-	_ "github.com/mustafaaksoy/gosupabase/handlers"
-	"github.com/mustafaaksoy/gosupabase/server"
+	"github.com/messivite/goSupabase/config"
+	_ "github.com/messivite/goSupabase/handlers"
+	"github.com/messivite/goSupabase/server"
 )
 
 var (

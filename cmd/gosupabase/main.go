@@ -11,9 +11,9 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/mustafaaksoy/gosupabase/config"
-	"github.com/mustafaaksoy/gosupabase/internal/scaffold"
-	yamlcfg "github.com/mustafaaksoy/gosupabase/internal/yaml"
+	"github.com/messivite/goSupabase/config"
+	"github.com/messivite/goSupabase/internal/scaffold"
+	yamlcfg "github.com/messivite/goSupabase/internal/yaml"
 )
 
 var stdinReader = bufio.NewReader(os.Stdin)
