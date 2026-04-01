@@ -118,7 +118,7 @@ func verifyToken(token string, secret []byte, supabaseURL, validationMode string
 func RequireRoles(allowed ...string) func(http.Handler) http.Handler {
 	set := make(map[string]bool, len(allowed))
 	for _, r := range allowed {
-		set[r] = true
+		set[strings.ToLower(strings.TrimSpace(r))] = true
 	}
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -127,13 +127,22 @@ func RequireRoles(allowed ...string) func(http.Handler) http.Handler {
 				writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "unauthorized"})
 				return
 			}
-			if !set[c.Role] {
+			if !hasAnyAllowedRole(c, set) {
 				writeJSON(w, http.StatusForbidden, map[string]string{"error": "insufficient permissions"})
 				return
 			}
 			next.ServeHTTP(w, r)
 		})
 	}
+}
+
+func hasAnyAllowedRole(c *auth.Claims, allowed map[string]bool) bool {
+	for _, role := range c.EffectiveRoles() {
+		if allowed[strings.ToLower(strings.TrimSpace(role))] {
+			return true
+		}
+	}
+	return false
 }
 
 func verifyHS256Parts(parts []string, secret []byte) (*auth.Claims, error) {
@@ -155,6 +164,7 @@ func verifyHS256Parts(parts []string, secret []byte) (*auth.Claims, error) {
 	if json.Unmarshal(payloadJSON, &claims) != nil {
 		return nil, errInvalid
 	}
+	claims.Roles = extractRoles(payloadJSON, claims.Role, claims.Roles)
 
 	if claims.ExpiresAt > 0 && time.Now().Unix() > claims.ExpiresAt {
 		return nil, errExpired
@@ -193,6 +203,7 @@ func verifyES256Parts(parts []string, kid, supabaseURL string) (*auth.Claims, er
 	if json.Unmarshal(payloadJSON, &claims) != nil {
 		return nil, errInvalid
 	}
+	claims.Roles = extractRoles(payloadJSON, claims.Role, claims.Roles)
 	if claims.ExpiresAt > 0 && time.Now().Unix() > claims.ExpiresAt {
 		return nil, errExpired
 	}
@@ -270,6 +281,49 @@ func base64URLDecode(s string) ([]byte, error) {
 		s += strings.Repeat("=", 4-m)
 	}
 	return base64.URLEncoding.DecodeString(s)
+}
+
+func extractRoles(payloadJSON []byte, role string, roles []string) []string {
+	seen := map[string]bool{}
+	out := make([]string, 0, 8)
+	add := func(v string) {
+		v = strings.TrimSpace(v)
+		if v == "" || seen[v] {
+			return
+		}
+		seen[v] = true
+		out = append(out, v)
+	}
+	add(role)
+	for _, r := range roles {
+		add(r)
+	}
+
+	var raw map[string]interface{}
+	if json.Unmarshal(payloadJSON, &raw) != nil {
+		return out
+	}
+	addInterfaceRoles(raw["roles"], add)
+	if appMeta, ok := raw["app_metadata"].(map[string]interface{}); ok {
+		addInterfaceRoles(appMeta["roles"], add)
+	}
+	if userMeta, ok := raw["user_metadata"].(map[string]interface{}); ok {
+		addInterfaceRoles(userMeta["roles"], add)
+	}
+	return out
+}
+
+func addInterfaceRoles(v interface{}, add func(string)) {
+	switch x := v.(type) {
+	case string:
+		add(x)
+	case []interface{}:
+		for _, item := range x {
+			if s, ok := item.(string); ok {
+				add(s)
+			}
+		}
+	}
 }
 
 type tokenError string

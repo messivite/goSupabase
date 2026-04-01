@@ -1,19 +1,28 @@
 # goSupaBase
 
-YAML-driven API scaffolding, code generation, and runtime routing for Go + Supabase projects.
+> Build Supabase-backed Go APIs fast with YAML-first endpoint design, runtime wiring, JWT auth, role guards, and hot-reload DX.
 
-[![Go Version](https://img.shields.io/badge/Go-1.22%2B-00ADD8?logo=go)](https://go.dev/)
-[![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![Supabase](https://img.shields.io/badge/Supabase-Enabled-3ECF8E?logo=supabase&logoColor=white)](https://supabase.com/)
-[![Router](https://img.shields.io/badge/Router-chi-ff6b6b)](https://github.com/go-chi/chi)
-[![YAML First](https://img.shields.io/badge/API%20Design-YAML--First-6f42c1)](#yaml-schema)
-[![JWT](https://img.shields.io/badge/Auth-JWT%20HS256%20%7C%20ES256-orange)](#auth-middleware)
-[![JWKS](https://img.shields.io/badge/JWKS-Supported-blue)](#jwks-file-placement)
-[![RBAC](https://img.shields.io/badge/Authorization-RBAC-critical)](#role-guard)
-[![Codegen](https://img.shields.io/badge/Codegen-Handlers%20%2B%20Server-0ea5e9)](#what-this-package-gives-you)
-[![Hot Reload](https://img.shields.io/badge/Dev-gosupabase%20dev-22c55e)](#quick-start)
-[![Repo Stars](https://img.shields.io/github/stars/messivite/goSupabase?style=social)](https://github.com/messivite/goSupabase)
-[![Last Commit](https://img.shields.io/github/last-commit/messivite/goSupabase)](https://github.com/messivite/goSupabase/commits/main)
+[![Go Version](https://img.shields.io/badge/Go-1.22%2B-00ADD8?logo=go&logoColor=white&style=for-the-badge)](https://go.dev/)
+[![Supabase](https://img.shields.io/badge/Supabase-Ready-3ECF8E?logo=supabase&logoColor=white&style=for-the-badge)](https://supabase.com/)
+[![JWT](https://img.shields.io/badge/JWT-HS256%20%7C%20ES256-orange?style=for-the-badge)](#auth-middleware)
+[![JWKS](https://img.shields.io/badge/JWKS-Auto%20Fetch-2563eb?style=for-the-badge)](#jwks-file-placement)
+[![Hot Reload](https://img.shields.io/badge/Dev-gosupabase%20dev-16a34a?style=for-the-badge)](#quick-start)
+
+[![Router](https://img.shields.io/badge/Router-chi-f43f5e?style=flat-square)](https://github.com/go-chi/chi)
+[![Codegen](https://img.shields.io/badge/Codegen-Handlers%20%2B%20Server-0ea5e9?style=flat-square)](#what-this-package-gives-you)
+[![YAML First](https://img.shields.io/badge/API%20Design-YAML--First-7c3aed?style=flat-square)](#yaml-schema)
+[![License](https://img.shields.io/badge/License-MIT-22c55e?style=flat-square)](LICENSE)
+[![Last Commit](https://img.shields.io/github/last-commit/messivite/goSupabase?style=flat-square)](https://github.com/messivite/goSupabase/commits/main)
+
+### Quick Links
+
+- [Quick Start](#quick-start)
+- [Setup](#setup)
+- [Developer Flows](#developer-flows-copypaste)
+- [Auth Middleware](#auth-middleware)
+- [JWT Mode Changes](#jwt-mode-changes-what-happens)
+- [YAML Schema](#yaml-schema)
+- [Environment Variables](#environment-variables)
 
 ## Features
 

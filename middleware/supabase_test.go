@@ -189,6 +189,45 @@ func TestRequireRolesNoClaims(t *testing.T) {
 	}
 }
 
+func TestRequireRolesAllowedFromRolesArray(t *testing.T) {
+	handler := RequireRoles("admin")(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+	req := httptest.NewRequest("GET", "/", nil)
+	ctx := auth.WithClaims(req.Context(), &auth.Claims{Roles: []string{"member", "admin"}})
+	req = req.WithContext(ctx)
+	rr := httptest.NewRecorder()
+	handler.ServeHTTP(rr, req)
+	if rr.Code != http.StatusOK {
+		t.Errorf("status = %d, want %d", rr.Code, http.StatusOK)
+	}
+}
+
+func TestSupabaseAuthExtractsAppMetadataRoles(t *testing.T) {
+	claims := map[string]interface{}{
+		"sub": "user-123",
+		"exp": float64(time.Now().Add(time.Hour).Unix()),
+		"app_metadata": map[string]interface{}{
+			"roles": []interface{}{"editor", "admin"},
+		},
+	}
+	token := makeToken(claims, testSecret)
+
+	authMw := SupabaseAuth(testSecret, "", "auto")
+	roleMw := RequireRoles("admin")
+	final := authMw(roleMw(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	})))
+
+	req := httptest.NewRequest("GET", "/", nil)
+	req.Header.Set("Authorization", "Bearer "+token)
+	rr := httptest.NewRecorder()
+	final.ServeHTTP(rr, req)
+	if rr.Code != http.StatusOK {
+		t.Errorf("status = %d, want %d", rr.Code, http.StatusOK)
+	}
+}
+
 func TestSupabaseAuthBadBearerPrefix(t *testing.T) {
 	handler := SupabaseAuth(testSecret, "", "auto")(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		t.Fatal("handler should not be called")
