@@ -17,7 +17,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/messivite/goSupabase/auth"
+	"github.com/messivite/gosupabase/auth"
 )
 
 const testSecret = "super-secret-jwt-token-for-testing"

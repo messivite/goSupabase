@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/messivite/goSupabase/config"
+	"github.com/messivite/gosupabase/config"
 )
 
 func TestRunStartsWithConfiguredAddr(t *testing.T) {

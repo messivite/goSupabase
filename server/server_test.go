@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/messivite/goSupabase/handlers"
+	"github.com/messivite/gosupabase/handlers"
 )
 
 func TestNewHandlerRegistersAndServesRoute(t *testing.T) {

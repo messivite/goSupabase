@@ -2,6 +2,7 @@
 
 > Build Supabase-backed Go APIs fast with YAML-first endpoint design, runtime wiring, JWT auth, role guards, and hot-reload DX.
 
+[![Go Reference](https://pkg.go.dev/badge/github.com/messivite/gosupabase.svg)](https://pkg.go.dev/github.com/messivite/gosupabase)
 [![Go Version](https://img.shields.io/badge/Go-1.22%2B-00ADD8?logo=go&logoColor=white&style=for-the-badge)](https://go.dev/)
 [![Supabase](https://img.shields.io/badge/Supabase-Ready-3ECF8E?logo=supabase&logoColor=white&style=for-the-badge)](https://supabase.com/)
 [![JWT](https://img.shields.io/badge/JWT-HS256%20%7C%20ES256-orange?style=for-the-badge)](#auth-middleware)
@@ -43,7 +44,7 @@
 ### New Project
 
 ```bash
-go install github.com/messivite/goSupabase/cmd/gosupabase@latest
+go install github.com/messivite/gosupabase/cmd/gosupabase@latest
 
 gosupabase new my-api
 cd my-api
@@ -326,7 +327,7 @@ You do not need to store `jwks.json` in your project.
 ### Accessing Claims
 
 ```go
-import "github.com/messivite/goSupabase/auth"
+import "github.com/messivite/gosupabase/auth"
 
 func MyHandler(w http.ResponseWriter, r *http.Request) {
     claims := auth.GetClaims(r.Context())
