@@ -13,7 +13,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/messivite/goSupabase/auth"
+	"github.com/messivite/gosupabase/auth"
 )
 
 type jwtHeader struct {

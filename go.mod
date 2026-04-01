@@ -1,4 +1,4 @@
-module github.com/messivite/goSupabase
+module github.com/messivite/gosupabase
 
 go 1.22
 
