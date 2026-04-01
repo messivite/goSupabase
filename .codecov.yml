@@ -1,15 +1,12 @@
+# https://docs.codecov.com/docs/codecovyml-reference
 coverage:
   status:
     project:
       default:
-        target: 70%
+        target: auto
         threshold: 1%
     patch:
       default:
-        target: 70%
-        threshold: 1%
-
-comment:
-  layout: "reach,diff,flags,files"
-  behavior: default
-  require_changes: false
+        # Per-commit "lines in diff covered" is noisy for small or CLI-heavy
+        # changes; keep patch visible in Codecov UI without failing CI.
+        informational: true

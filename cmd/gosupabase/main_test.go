@@ -130,7 +130,7 @@ func TestSetupInteractiveCreatesFiles(t *testing.T) {
 	defer os.Chdir(origWD)
 
 	origReader := stdinReader
-	// port, url, anon, secret, validation mode, include service key=no, server dir, handlers dir, deploy (empty=none)
+	// port, url, anon, secret, validation mode, include service key=no, server dir, handlers dir, skip deploy (empty=n)
 	input := "8080\nhttps://x.supabase.co\nanon\nsecret\nauto\nn\nserver\nhandlers\n\n"
 	stdinReader = bufio.NewReader(strings.NewReader(input))
 	defer func() { stdinReader = origReader }()
@@ -142,6 +142,152 @@ func TestSetupInteractiveCreatesFiles(t *testing.T) {
 	}
 	if _, err := os.Stat(".gosupabase.yaml"); err != nil {
 		t.Fatalf("expected .gosupabase.yaml: %v", err)
+	}
+}
+
+func TestSetupInteractiveWithVercelDeploy(t *testing.T) {
+	origWD, _ := os.Getwd()
+	dir := t.TempDir()
+	_ = os.Chdir(dir)
+	defer os.Chdir(origWD)
+
+	origReader := stdinReader
+	input := "8080\nhttps://x.supabase.co\nanon\nsecret\nauto\nn\nserver\nhandlers\ny\nvercel\n"
+	stdinReader = bufio.NewReader(strings.NewReader(input))
+	defer func() { stdinReader = origReader }()
+
+	setupInteractive()
+
+	if _, err := os.Stat("vercel.json"); err != nil {
+		t.Fatalf("expected vercel.json: %v", err)
+	}
+	if _, err := os.Stat("DEPLOY.md"); err != nil {
+		t.Fatalf("expected DEPLOY.md: %v", err)
+	}
+	data, err := os.ReadFile(".gosupabase.yaml")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(data), "vercel") {
+		t.Fatalf(".gosupabase.yaml should list deploy provider vercel, got: %s", string(data))
+	}
+}
+
+func TestWriteDeployArtifactsFromFileVercel(t *testing.T) {
+	origWD, _ := os.Getwd()
+	dir := t.TempDir()
+	_ = os.Chdir(dir)
+	defer os.Chdir(origWD)
+
+	writeDeployArtifactsFromFile(deploy.ProviderVercel, map[string]string{
+		"DEPLOY_OVERWRITE": "false",
+	})
+	if _, err := os.Stat("vercel.json"); err != nil {
+		t.Fatalf("expected vercel.json: %v", err)
+	}
+}
+
+func TestWriteDeployArtifactsFromFileOverwrite(t *testing.T) {
+	origWD, _ := os.Getwd()
+	dir := t.TempDir()
+	_ = os.Chdir(dir)
+	defer os.Chdir(origWD)
+
+	if err := os.WriteFile("vercel.json", []byte("stale"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	writeDeployArtifactsFromFile(deploy.ProviderVercel, map[string]string{
+		"DEPLOY_OVERWRITE": "true",
+	})
+	b, err := os.ReadFile("vercel.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.TrimSpace(string(b)) == "stale" {
+		t.Fatal("expected vercel.json to be overwritten")
+	}
+}
+
+func TestWriteDeployArtifactsFromFileSkipsWithoutOverwrite(t *testing.T) {
+	origWD, _ := os.Getwd()
+	dir := t.TempDir()
+	_ = os.Chdir(dir)
+	defer os.Chdir(origWD)
+
+	if err := os.WriteFile("vercel.json", []byte("keep"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	writeDeployArtifactsFromFile(deploy.ProviderVercel, map[string]string{})
+	b, err := os.ReadFile("vercel.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(b) != "keep" {
+		t.Fatalf("expected existing file kept, got %q", string(b))
+	}
+}
+
+func TestWriteDeployArtifactsInteractiveCreatesFiles(t *testing.T) {
+	origWD, _ := os.Getwd()
+	dir := t.TempDir()
+	_ = os.Chdir(dir)
+	defer os.Chdir(origWD)
+
+	writeDeployArtifactsInteractive(deploy.ProviderRailway, "")
+	if _, err := os.Stat("railway.toml"); err != nil {
+		t.Fatalf("expected railway.toml: %v", err)
+	}
+}
+
+func TestWriteDeployArtifactsInteractiveOverwritePrompt(t *testing.T) {
+	origWD, _ := os.Getwd()
+	dir := t.TempDir()
+	_ = os.Chdir(dir)
+	defer os.Chdir(origWD)
+
+	if err := os.WriteFile("vercel.json", []byte("old"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	origReader := stdinReader
+	stdinReader = bufio.NewReader(strings.NewReader("y\n"))
+	defer func() { stdinReader = origReader }()
+
+	writeDeployArtifactsInteractive(deploy.ProviderVercel, "")
+	b, err := os.ReadFile("vercel.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.TrimSpace(string(b)) == "old" {
+		t.Fatal("expected overwrite after y")
+	}
+}
+
+func TestSetupFromFileWithDeploy(t *testing.T) {
+	origWD, _ := os.Getwd()
+	dir := t.TempDir()
+	_ = os.Chdir(dir)
+	defer os.Chdir(origWD)
+
+	source := "source.env"
+	content := "PORT=9090\nSUPABASE_URL=https://x.supabase.co\nSUPABASE_ANON_KEY=anon\nSUPABASE_JWT_SECRET=secret\nSERVER_DIR=pkg/server\nHANDLERS_DIR=pkg/handlers\nDEPLOY_TARGET=render\n"
+	if err := os.WriteFile(source, []byte(content), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	setupFromFile(source)
+
+	if _, err := os.Stat("render.yaml"); err != nil {
+		t.Fatalf("expected render.yaml: %v", err)
+	}
+}
+
+func TestPromptDeployTarget(t *testing.T) {
+	orig := stdinReader
+	stdinReader = bufio.NewReader(strings.NewReader("fly\n"))
+	defer func() { stdinReader = orig }()
+
+	if got := promptDeployTarget(); got != deploy.ProviderFly {
+		t.Fatalf("got %q, want fly", got)
 	}
 }
 
