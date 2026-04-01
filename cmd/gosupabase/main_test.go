@@ -2,11 +2,14 @@ package main
 
 import (
 	"bufio"
+	"bytes"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 	"time"
+
+	yamlcfg "github.com/mustafaaksoy/gosupabase/internal/yaml"
 )
 
 func TestSameSnapshot(t *testing.T) {
@@ -138,5 +141,91 @@ func TestSetupInteractiveCreatesFiles(t *testing.T) {
 	}
 	if _, err := os.Stat(".gosupabase.yaml"); err != nil {
 		t.Fatalf("expected .gosupabase.yaml: %v", err)
+	}
+}
+
+func TestCmdInitCreatesDefaults(t *testing.T) {
+	origWD, _ := os.Getwd()
+	dir := t.TempDir()
+	_ = os.Chdir(dir)
+	defer os.Chdir(origWD)
+
+	cmdInit()
+
+	if _, err := os.Stat("api.yaml"); err != nil {
+		t.Fatalf("expected api.yaml: %v", err)
+	}
+	if _, err := os.Stat(".env.example"); err != nil {
+		t.Fatalf("expected .env.example: %v", err)
+	}
+}
+
+func TestCmdAddAndList(t *testing.T) {
+	origWD, _ := os.Getwd()
+	dir := t.TempDir()
+	_ = os.Chdir(dir)
+	defer os.Chdir(origWD)
+
+	cfg := &yamlcfg.APIConfig{
+		Version:  "1",
+		BasePath: "/api",
+		Output:   yamlcfg.OutputConfig{ServerDir: "server", HandlersDir: "handlers"},
+	}
+	if err := yamlcfg.Save("api.yaml", cfg); err != nil {
+		t.Fatal(err)
+	}
+
+	cmdAdd([]string{"endpoint", "GET /tracks"})
+
+	loaded, err := yamlcfg.Load("api.yaml")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(loaded.Endpoints) != 1 {
+		t.Fatalf("expected 1 endpoint, got %d", len(loaded.Endpoints))
+	}
+	if loaded.Endpoints[0].Handler == "" {
+		t.Fatal("expected derived handler name")
+	}
+
+	oldStdout := os.Stdout
+	r, w, _ := os.Pipe()
+	os.Stdout = w
+	cmdList()
+	_ = w.Close()
+	os.Stdout = oldStdout
+	var out bytes.Buffer
+	_, _ = out.ReadFrom(r)
+	_ = r.Close()
+	if !strings.Contains(out.String(), "GET") || !strings.Contains(out.String(), "/tracks") {
+		t.Fatalf("unexpected list output: %q", out.String())
+	}
+}
+
+func TestCmdGenHandlersOnly(t *testing.T) {
+	origWD, _ := os.Getwd()
+	dir := t.TempDir()
+	_ = os.Chdir(dir)
+	defer os.Chdir(origWD)
+
+	cfg := &yamlcfg.APIConfig{
+		Version:  "1",
+		BasePath: "/api",
+		Output:   yamlcfg.OutputConfig{ServerDir: "server", HandlersDir: "handlers"},
+		Endpoints: []yamlcfg.Endpoint{
+			{Method: "GET", Path: "/health", Handler: "Health", Auth: false},
+		},
+	}
+	if err := yamlcfg.Save("api.yaml", cfg); err != nil {
+		t.Fatal(err)
+	}
+
+	cmdGen([]string{"--handlers-only"})
+
+	if _, err := os.Stat(filepath.Join("handlers", "health.go")); err != nil {
+		t.Fatalf("expected generated handler file: %v", err)
+	}
+	if _, err := os.Stat(filepath.Join("server", "server.go")); !os.IsNotExist(err) {
+		t.Fatalf("expected no generated server.go in handlers-only mode, got err=%v", err)
 	}
 }
