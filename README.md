@@ -29,6 +29,7 @@
 - [YAML Schema](#yaml-schema)
 - [Environment Variables](#environment-variables)
 - [CI/CD and Releases](#cicd-and-releases)
+- [Deployment](#deployment)
 
 ## Features
 
@@ -130,8 +131,8 @@ gosupabase gen --server-dir pkg/server --handlers-dir pkg/handler
 |---------|-------------|
 | `gosupabase new <name>` | Scaffold a new project with all directories, `api.yaml`, `Makefile`, `go.mod` |
 | `gosupabase init` | Initialize goSupabase in an existing project (creates `api.yaml`) |
-| `gosupabase setup` | Interactive wizard for `.env` and `.gosupabase.yaml` |
-| `gosupabase setup --from-file <path>` | Import config from an env-style file |
+| `gosupabase setup` | Interactive wizard for `.env`, `.gosupabase.yaml`, and optional deploy templates |
+| `gosupabase setup --from-file <path>` | Import config from an env-style file (incl. `DEPLOY_TARGET`) |
 | `gosupabase add endpoint "METHOD /path" [--auth]` | Add an endpoint to `api.yaml` |
 | `gosupabase gen [flags]` | Generate handler stubs and server code |
 | `gosupabase dev` | Run `cmd/server` and auto-restart when watched files change |
@@ -162,11 +163,18 @@ Include service role key? (server-side only, never expose publicly) [y/N]: n
 
 Server output directory [server]:
 Handlers output directory [handlers]:
+
+Add deploy scaffolding (vercel.json, fly.toml, …)? Optional — skip if you will configure hosting later [y/N]:
 ```
 
-The wizard writes two files:
+Deploy is **optional**. Press **Enter** (or answer `n`) to skip; no deploy questions follow. If you answer `y`, the wizard asks for a target (`vercel` / `fly` / `railway` / `render` / `none`) and, for Fly, an optional app name. Full behavior, generated files, and non-interactive options are in [Deployment](#deployment).
+
+The wizard writes:
+
 - `.env` with your Supabase credentials
-- `.gosupabase.yaml` with output directory preferences
+- `.gosupabase.yaml` with output paths and `deploy.provider`
+
+If you enable deploy scaffolding and pick a target other than `none`, it also adds provider-specific files and `DEPLOY.md`. Secrets always stay in the host dashboard (Vercel / Fly / Railway / Render), not in the repo.
 
 **File conflict handling:** If `.env` or `.gosupabase.yaml` already exist, the wizard asks per file:
 - **Overwrite** -- replace the file entirely with new values
@@ -191,9 +199,16 @@ SUPABASE_JWT_SECRET=super-secret-jwt
 SUPABASE_JWT_VALIDATION_MODE=auto
 SERVER_DIR=pkg/server
 HANDLERS_DIR=pkg/handler
+
+# optional — see Deployment section for DEPLOY_* keys
+DEPLOY_TARGET=
+FLY_APP_NAME=
+DEPLOY_OVERWRITE=false
 ```
 
 The CLI validates required keys (`SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_JWT_SECRET`) and warns about any that are missing. Optional keys like `SERVER_DIR`, `HANDLERS_DIR`, and `SUPABASE_JWT_VALIDATION_MODE` map to runtime and output behavior.
+
+Deploy-related keys (`DEPLOY_TARGET`, `FLY_APP_NAME`, `DEPLOY_OVERWRITE`) are documented under [Deployment](#deployment).
 
 The same conflict policy (overwrite/merge/skip) applies when target files already exist.
 
@@ -478,6 +493,50 @@ If `tag` is empty, workflow auto-calculates the next semver from the latest `v*`
 - `major` -> `v(X+1).0.0`
 
 Then it creates the tag, runs quality gate, builds artifacts, and publishes a GitHub Release.
+
+## Deployment
+
+Use this when you are ready to put the API on a host. Everything here is **optional** during `gosupabase setup`: you can skip deploy scaffolding entirely (interactive default is **no**; or omit `DEPLOY_TARGET` in `--from-file`).
+
+### What setup can generate
+
+| Target | Files | Role |
+|--------|--------|------|
+| `vercel` | `vercel.json`, `DEPLOY.md` | Serverless entry is `api/index.go`; set env vars in the Vercel project |
+| `fly` | `fly.toml`, `DEPLOY.md` | Container on Fly.io; optional app name in `fly.toml` placeholder; `fly secrets` + `fly deploy` |
+| `railway` | `railway.toml`, `DEPLOY.md` | Tune start command and variables in Railway |
+| `render` | `render.yaml`, `DEPLOY.md` | Blueprint-style stub; adjust repo URL and create a Web Service / Blueprint |
+| `none` | — | No extra deploy files; `.gosupabase.yaml` still records `deploy.provider: none` |
+
+`DEPLOY.md` is a short checklist for the chosen provider. **Never** commit real secrets; configure them in each platform’s UI or secret store.
+
+### Interactive wizard
+
+1. After server/handler directories, you get: `Add deploy scaffolding … [y/N]`. **Enter** or `n` → skip (no deploy files, `deploy.provider: none`).
+2. If `y`: choose `vercel` / `fly` / `railway` / `render` / `none` (empty line defaults to `none`).
+3. For **Fly**, you can set an app name or leave it empty (placeholder `my-gosupabase-app` in `fly.toml`).
+
+### `setup --from-file`
+
+| Key | Meaning |
+|-----|---------|
+| `DEPLOY_TARGET` | `vercel`, `fly`, `railway`, `render`, or empty / `none` |
+| `FLY_APP_NAME` | Optional; written into `fly.toml` when target is `fly` |
+| `DEPLOY_OVERWRITE` | `true` / `false` — when `true`, existing `vercel.json`, `fly.toml`, `railway.toml`, `render.yaml`, and `DEPLOY.md` are replaced instead of skipped |
+
+Same values apply as in the interactive flow. If `DEPLOY_TARGET` is empty or `none`, no deploy artifacts are written (unless you already have files from a previous run).
+
+### Provider notes
+
+- **Vercel** — Ensure `api/index.go` exists (from `gosupabase new` / gen). Link the repo, set `SUPABASE_*` and `PORT` as needed, deploy.
+- **Fly.io** — `fly launch` / `fly deploy` per `DEPLOY.md`; map secrets with `fly secrets set`.
+- **Railway** — Point Railway at this repo; align `railway.toml` start command with your `cmd/server` binary build.
+- **Render** — Use `render.yaml` as a starting blueprint; connect the Git repo and set environment variables in the dashboard.
+
+### Config and conflicts
+
+- `.gosupabase.yaml` includes `deploy.provider` so `gosupabase gen` and future tooling stay aligned with your host choice.
+- If deploy files already exist and you run setup again, unchanged files are **skipped** unless you choose overwrite for those paths or set `DEPLOY_OVERWRITE=true` in `--from-file` mode (per-path overwrite rules still apply in the interactive conflict prompts where relevant).
 
 ## License
 

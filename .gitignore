@@ -2,3 +2,4 @@
 .cursor/
 jwks.json
 *.jwks.json
+.vercel/

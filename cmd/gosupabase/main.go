@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/messivite/gosupabase/config"
+	"github.com/messivite/gosupabase/internal/deploy"
 	"github.com/messivite/gosupabase/internal/scaffold"
 	yamlcfg "github.com/messivite/gosupabase/internal/yaml"
 )
@@ -31,6 +32,7 @@ Usage:
 
 Setup flags:
   --from-file <path>    Import config from an env-style file instead of prompting
+                        (supports DEPLOY_TARGET, FLY_APP_NAME, DEPLOY_OVERWRITE)
 
 Gen flags:
   --server-dir DIR       Override server output directory
@@ -111,6 +113,18 @@ func promptValidationMode(defaultVal string) string {
 	}
 }
 
+func promptDeployTarget() string {
+	fmt.Println("(Secrets stay in the host dashboard, not in the repo.)")
+	fmt.Println("  vercel   — api/index.go + vercel.json")
+	fmt.Println("  fly      — fly.toml")
+	fmt.Println("  railway  — railway.toml")
+	fmt.Println("  render   — render.yaml")
+	fmt.Println("  none     — no extra files")
+	fmt.Printf("Deploy target [vercel/fly/railway/render/none] [none]: ")
+	line, _ := stdinReader.ReadString('\n')
+	return deploy.NormalizeProvider(strings.TrimSpace(line))
+}
+
 type conflictPolicy int
 
 const (
@@ -161,8 +175,15 @@ func mergeEnvFile(path string, newEntries map[string]string, orderedKeys []strin
 	return writeEnvFile(path, existing, orderedKeys)
 }
 
-func writeGosupabaseYAML(path, serverDir, handlersDir string) error {
-	content := fmt.Sprintf("output:\n  serverDir: %s\n  handlersDir: %s\n", serverDir, handlersDir)
+func writeGosupabaseYAML(path, serverDir, handlersDir, deployProvider string) error {
+	dp := deploy.NormalizeProvider(deployProvider)
+	if dp == "" {
+		dp = deploy.ProviderNone
+	}
+	content := fmt.Sprintf(
+		"output:\n  serverDir: %s\n  handlersDir: %s\ndeploy:\n  provider: %s\n",
+		serverDir, handlersDir, dp,
+	)
 	return os.WriteFile(path, []byte(content), 0644)
 }
 
@@ -187,6 +208,16 @@ func setupInteractive() {
 	serverDir := promptString("Server output directory", "server")
 	handlersDir := promptString("Handlers output directory", "handlers")
 
+	deployTarget := deploy.ProviderNone
+	flyAppName := ""
+	if promptYesNo("Add deploy scaffolding (vercel.json, fly.toml, …)? Optional — skip if you will configure hosting later", false) {
+		fmt.Println()
+		deployTarget = promptDeployTarget()
+		if deployTarget == deploy.ProviderFly {
+			flyAppName = promptString("Fly.io app name (optional, placeholder if empty)", "")
+		}
+	}
+
 	envKeys := []string{"PORT", "SUPABASE_URL", "SUPABASE_ANON_KEY", "SUPABASE_JWT_SECRET", "SUPABASE_JWT_VALIDATION_MODE"}
 	envMap := map[string]string{
 		"PORT":                         port,
@@ -201,8 +232,10 @@ func setupInteractive() {
 	}
 
 	fmt.Println()
-	applyFileWithPolicy(".env", envMap, envKeys, serverDir, handlersDir, true)
-	applyFileWithPolicy(".gosupabase.yaml", envMap, envKeys, serverDir, handlersDir, false)
+	applyFileWithPolicy(".env", envMap, envKeys, serverDir, handlersDir, deployTarget, true)
+	applyFileWithPolicy(".gosupabase.yaml", envMap, envKeys, serverDir, handlersDir, deployTarget, false)
+
+	writeDeployArtifactsInteractive(deployTarget, flyAppName)
 
 	if includeServiceKey {
 		fmt.Println("\n  Warning: SUPABASE_SERVICE_ROLE_KEY is for server-side use only.")
@@ -212,7 +245,7 @@ func setupInteractive() {
 	fmt.Println("\nSetup complete!")
 }
 
-func applyFileWithPolicy(filename string, envMap map[string]string, envKeys []string, serverDir, handlersDir string, isEnv bool) {
+func applyFileWithPolicy(filename string, envMap map[string]string, envKeys []string, serverDir, handlersDir, deployProvider string, isEnv bool) {
 	_, err := os.Stat(filename)
 	exists := err == nil
 
@@ -244,7 +277,7 @@ func applyFileWithPolicy(filename string, envMap map[string]string, envKeys []st
 			return
 		}
 	} else {
-		if err := writeGosupabaseYAML(filename, serverDir, handlersDir); err != nil {
+		if err := writeGosupabaseYAML(filename, serverDir, handlersDir, deployProvider); err != nil {
 			fmt.Fprintf(os.Stderr, "  error writing %s: %v\n", filename, err)
 			return
 		}
@@ -254,6 +287,53 @@ func applyFileWithPolicy(filename string, envMap map[string]string, envKeys []st
 		verb = "overwrote"
 	}
 	fmt.Printf("  %s %s\n", verb, filename)
+}
+
+func writeDeployArtifactsInteractive(deployTarget, flyAppName string) {
+	if deploy.NormalizeProvider(deployTarget) == deploy.ProviderNone {
+		return
+	}
+	written, skipped, err := deploy.WriteFiles(deployTarget, flyAppName, func(rel string) bool {
+		if _, err := os.Stat(rel); os.IsNotExist(err) {
+			return true
+		}
+		return promptYesNo("  "+rel+" already exists. Overwrite?", false)
+	})
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "  deploy files: %v\n", err)
+		return
+	}
+	for _, w := range written {
+		fmt.Printf("  created %s\n", w)
+	}
+	for _, s := range skipped {
+		fmt.Printf("  skipped %s (exists)\n", s)
+	}
+}
+
+func writeDeployArtifactsFromFile(deployTarget string, entries map[string]string) {
+	if deploy.NormalizeProvider(deployTarget) == deploy.ProviderNone {
+		return
+	}
+	overwrite := strings.EqualFold(strings.TrimSpace(entries["DEPLOY_OVERWRITE"]), "true")
+	flyApp := strings.TrimSpace(entries["FLY_APP_NAME"])
+	written, skipped, err := deploy.WriteFiles(deployTarget, flyApp, func(rel string) bool {
+		if overwrite {
+			return true
+		}
+		_, err := os.Stat(rel)
+		return os.IsNotExist(err)
+	})
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "  deploy files: %v\n", err)
+		return
+	}
+	for _, w := range written {
+		fmt.Printf("  created %s\n", w)
+	}
+	for _, s := range skipped {
+		fmt.Printf("  skipped %s (exists)\n", s)
+	}
 }
 
 func setupFromFile(path string) {
@@ -305,8 +385,12 @@ func setupFromFile(path string) {
 		handlersDir = v
 	}
 
-	applyFileWithPolicy(".env", envMap, orderedKeys, serverDir, handlersDir, true)
-	applyFileWithPolicy(".gosupabase.yaml", envMap, orderedKeys, serverDir, handlersDir, false)
+	deployTarget := deploy.NormalizeProvider(entries["DEPLOY_TARGET"])
+
+	applyFileWithPolicy(".env", envMap, orderedKeys, serverDir, handlersDir, deployTarget, true)
+	applyFileWithPolicy(".gosupabase.yaml", envMap, orderedKeys, serverDir, handlersDir, deployTarget, false)
+
+	writeDeployArtifactsFromFile(deployTarget, entries)
 
 	if _, ok := entries["SUPABASE_SERVICE_ROLE_KEY"]; ok {
 		fmt.Println("\n  Warning: SUPABASE_SERVICE_ROLE_KEY is for server-side use only.")

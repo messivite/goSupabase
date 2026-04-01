@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/messivite/gosupabase/internal/deploy"
 	yamlcfg "github.com/messivite/gosupabase/internal/yaml"
 )
 
@@ -129,8 +130,8 @@ func TestSetupInteractiveCreatesFiles(t *testing.T) {
 	defer os.Chdir(origWD)
 
 	origReader := stdinReader
-	// port, url, anon, secret, validation mode, include service key=no, server dir, handlers dir
-	input := "8080\nhttps://x.supabase.co\nanon\nsecret\nauto\nn\nserver\nhandlers\n"
+	// port, url, anon, secret, validation mode, include service key=no, server dir, handlers dir, deploy (empty=none)
+	input := "8080\nhttps://x.supabase.co\nanon\nsecret\nauto\nn\nserver\nhandlers\n\n"
 	stdinReader = bufio.NewReader(strings.NewReader(input))
 	defer func() { stdinReader = origReader }()
 
@@ -246,7 +247,7 @@ func TestApplyFileWithPolicySkipExistingEnv(t *testing.T) {
 	stdinReader = bufio.NewReader(strings.NewReader("s\n"))
 	defer func() { stdinReader = origReader }()
 
-	applyFileWithPolicy(".env", envMap, keys, "server", "handlers", true)
+	applyFileWithPolicy(".env", envMap, keys, "server", "handlers", deploy.ProviderNone, true)
 
 	data, err := os.ReadFile(".env")
 	if err != nil {
@@ -276,7 +277,7 @@ func TestApplyFileWithPolicyMergeEnv(t *testing.T) {
 	stdinReader = bufio.NewReader(strings.NewReader("m\n"))
 	defer func() { stdinReader = origReader }()
 
-	applyFileWithPolicy(".env", envMap, keys, "server", "handlers", true)
+	applyFileWithPolicy(".env", envMap, keys, "server", "handlers", deploy.ProviderNone, true)
 
 	data, err := os.ReadFile(".env")
 	if err != nil {
@@ -304,7 +305,7 @@ func TestApplyFileWithPolicyOverwriteYaml(t *testing.T) {
 	stdinReader = bufio.NewReader(strings.NewReader("o\n"))
 	defer func() { stdinReader = origReader }()
 
-	applyFileWithPolicy(".gosupabase.yaml", map[string]string{}, nil, "pkg/server", "pkg/handlers", false)
+	applyFileWithPolicy(".gosupabase.yaml", map[string]string{}, nil, "pkg/server", "pkg/handlers", deploy.ProviderNone, false)
 
 	data, err := os.ReadFile(".gosupabase.yaml")
 	if err != nil {
