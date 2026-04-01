@@ -34,7 +34,7 @@
 - **YAML endpoint definitions** — single `api.yaml` as the source of truth
 - **Code generation** — handler stubs and server wiring from YAML
 - **Runtime routing** — `api.yaml` loaded at startup, no regeneration needed for new endpoints
-- **Supabase JWT auth** — HS256 middleware with claims context and role guards
+- **Supabase JWT auth** — HS256/ES256 (JWKS) with claims context and role guards
 - **Configurable output** — custom directories via flags, `.gosupabase.yaml`, or `api.yaml`
 - **Handlers-only mode** — generate stubs without touching the server
 

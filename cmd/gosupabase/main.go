@@ -68,10 +68,6 @@ func main() {
 	}
 }
 
-// ---------------------------------------------------------------------------
-// Prompt helpers
-// ---------------------------------------------------------------------------
-
 func promptString(label, defaultVal string) string {
 	if defaultVal != "" {
 		fmt.Printf("%s [%s]: ", label, defaultVal)
@@ -141,10 +137,6 @@ func promptConflict(filename string) conflictPolicy {
 	}
 }
 
-// ---------------------------------------------------------------------------
-// File write with conflict policy
-// ---------------------------------------------------------------------------
-
 func writeEnvFile(path string, entries map[string]string, orderedKeys []string) error {
 	var sb strings.Builder
 	for _, k := range orderedKeys {
@@ -173,10 +165,6 @@ func writeGosupabaseYAML(path, serverDir, handlersDir string) error {
 	content := fmt.Sprintf("output:\n  serverDir: %s\n  handlersDir: %s\n", serverDir, handlersDir)
 	return os.WriteFile(path, []byte(content), 0644)
 }
-
-// ---------------------------------------------------------------------------
-// Setup: interactive wizard (default)
-// ---------------------------------------------------------------------------
 
 func setupInteractive() {
 	fmt.Println("goSupabase interactive setup")
@@ -268,10 +256,6 @@ func applyFileWithPolicy(filename string, envMap map[string]string, envKeys []st
 	fmt.Printf("  %s %s\n", verb, filename)
 }
 
-// ---------------------------------------------------------------------------
-// Setup: from-file import
-// ---------------------------------------------------------------------------
-
 func setupFromFile(path string) {
 	fmt.Printf("Importing config from %s ...\n", path)
 
@@ -331,10 +315,6 @@ func setupFromFile(path string) {
 
 	fmt.Println("\nImport complete!")
 }
-
-// ---------------------------------------------------------------------------
-// Commands
-// ---------------------------------------------------------------------------
 
 func cmdNew(args []string) {
 	if len(args) < 1 {
