@@ -450,6 +450,8 @@ This repository includes two GitHub Actions workflows:
 - `Release` (`.github/workflows/release.yml`)
   - **Automatic release** when pushing tags like `v1.2.3`
   - **Manual release** from GitHub Actions UI via `workflow_dispatch`
+  - Includes a required **quality gate** (`build + test + vet + tidy check`)
+  - Release artifacts are built only if the quality gate succeeds
   - Builds binaries for Linux/macOS/Windows and uploads `checksums.txt`
 
 ### Automatic release (tag-based)
