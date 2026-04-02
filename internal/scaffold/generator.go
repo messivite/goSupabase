@@ -1,6 +1,7 @@
 package scaffold
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -9,6 +10,9 @@ import (
 
 	yamlcfg "github.com/messivite/gosupabase/internal/yaml"
 )
+
+// ErrNoGoMod means go.mod was missing or had no module line — cmd/server cannot be generated.
+var ErrNoGoMod = errors.New("go.mod not found or has no module directive")
 
 type GenerateOptions struct {
 	HandlersDir  string
@@ -133,6 +137,51 @@ func ScaffoldNew(dir, module string) error {
 	fmt.Printf("  created cmd/server/main.go\n")
 
 	return nil
+}
+
+// ModuleFromDir reads the module path from dir/go.mod.
+func ModuleFromDir(dir string) (string, error) {
+	data, err := os.ReadFile(filepath.Join(dir, "go.mod"))
+	if err != nil {
+		if os.IsNotExist(err) {
+			return "", ErrNoGoMod
+		}
+		return "", err
+	}
+	for _, line := range strings.Split(string(data), "\n") {
+		line = strings.TrimSpace(line)
+		if strings.HasPrefix(line, "module ") {
+			return strings.TrimSpace(strings.TrimPrefix(line, "module ")), nil
+		}
+	}
+	return "", ErrNoGoMod
+}
+
+// EnsureConsumerCmdServer writes cmd/server/main.go if it does not exist yet, using
+// github.com/messivite/gosupabase/server and config with the project's handlers import.
+// created is true when a new file was written.
+func EnsureConsumerCmdServer(dir string) (created bool, err error) {
+	module, err := ModuleFromDir(dir)
+	if err != nil {
+		return false, err
+	}
+	mainPath := filepath.Join(dir, "cmd", "server", "main.go")
+	if _, err := os.Stat(mainPath); err == nil {
+		return false, nil
+	} else if !os.IsNotExist(err) {
+		return false, err
+	}
+	if err := os.MkdirAll(filepath.Join(dir, "cmd", "server"), 0755); err != nil {
+		return false, err
+	}
+	content, err := renderTemplate(consumerCmdMainTemplate, map[string]string{"Module": module})
+	if err != nil {
+		return false, err
+	}
+	if err := os.WriteFile(mainPath, []byte(content), 0644); err != nil {
+		return false, err
+	}
+	return true, nil
 }
 
 func renderTemplate(tmpl string, data map[string]string) (string, error) {

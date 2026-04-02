@@ -5,7 +5,7 @@
 | Command | Description |
 |---------|-------------|
 | `gosupabase new <name>` | Scaffold a new project with all directories, `api.yaml`, `Makefile`, `go.mod` |
-| `gosupabase init` | Initialize goSupaBase in an existing project (creates `api.yaml`) |
+| `gosupabase init` | Initialize in an existing project: `api.yaml`, `.env.example`, and `cmd/server/main.go` if `go.mod` exists |
 | `gosupabase setup` | Interactive wizard for `.env`, `.gosupabase.yaml`, and optional deploy templates |
 | `gosupabase setup --from-file <path>` | Import config from an env-style file |
 | `gosupabase add endpoint "METHOD /path" [--auth]` | Add an endpoint to `api.yaml` |
@@ -30,10 +30,13 @@ Creates a directory with:
 ## `gosupabase init`
 
 ```bash
+go mod init github.com/you/your-api   # required first
 gosupabase init
 ```
 
-Initializes goSupaBase in an **existing** Go project. Creates `api.yaml` with a health endpoint and `.env.example`.
+Creates `api.yaml` (with a health endpoint), `.env.example`, and **`cmd/server/main.go`** when `go.mod` is present. The entrypoint imports `github.com/messivite/gosupabase/server` and `config` and blank-imports **your** `handlers` package — run `go get github.com/messivite/gosupabase@latest && go mod tidy` next.
+
+If there is no `go.mod`, `init` prints a hint to create one and run `init` again.
 
 ## `gosupabase setup`
 

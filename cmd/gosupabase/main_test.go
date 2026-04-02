@@ -297,6 +297,10 @@ func TestCmdInitCreatesDefaults(t *testing.T) {
 	_ = os.Chdir(dir)
 	defer os.Chdir(origWD)
 
+	if err := os.WriteFile("go.mod", []byte("module github.com/test/initproj\n\ngo 1.22\n"), 0644); err != nil {
+		t.Fatal(err)
+	}
+
 	cmdInit()
 
 	if _, err := os.Stat("api.yaml"); err != nil {
@@ -304,6 +308,15 @@ func TestCmdInitCreatesDefaults(t *testing.T) {
 	}
 	if _, err := os.Stat(".env.example"); err != nil {
 		t.Fatalf("expected .env.example: %v", err)
+	}
+	mainPath := filepath.Join("cmd", "server", "main.go")
+	b, err := os.ReadFile(mainPath)
+	if err != nil {
+		t.Fatalf("expected %s: %v", mainPath, err)
+	}
+	s := string(b)
+	if !strings.Contains(s, "github.com/messivite/gosupabase/server") || !strings.Contains(s, "github.com/test/initproj/handlers") {
+		t.Fatalf("unexpected cmd/server/main.go: %s", s)
 	}
 }
 

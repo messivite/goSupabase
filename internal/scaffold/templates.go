@@ -154,6 +154,30 @@ func main() {
 }
 `
 
+// consumerCmdMainTemplate is used by gosupabase init: entrypoint that wires the published module's
+// server + config to the project's handlers package (no vendored server/middleware copy).
+const consumerCmdMainTemplate = `package main
+
+import (
+	"log"
+	"net/http"
+
+	"github.com/messivite/gosupabase/config"
+	_ "{{.Module}}/handlers"
+	"github.com/messivite/gosupabase/server"
+)
+
+func main() {
+	cfg := config.LoadEnv()
+	handler := server.NewHandler("api.yaml", cfg.SupabaseJWTSecret, cfg.SupabaseURL, cfg.SupabaseJWTValidationMode)
+	addr := ":" + cfg.Port
+	log.Printf("[gosupabase] server starting on %s", addr)
+	if err := http.ListenAndServe(addr, handler); err != nil {
+		log.Fatalf("[gosupabase] server error: %v", err)
+	}
+}
+`
+
 const makefileTemplate = `.PHONY: build run gen tidy
 
 build:
