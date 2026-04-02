@@ -106,6 +106,22 @@ endpoints:
 	if err := os.WriteFile("api.yaml", []byte(api), 0644); err != nil {
 		t.Fatal(err)
 	}
+	goMod := "module github.com/example/test\n\ngo 1.22\n"
+	if err := os.WriteFile("go.mod", []byte(goMod), 0644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll("middleware", 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join("middleware", "stub.go"), []byte("package middleware\n"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(filepath.Join("internal", "yaml"), 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join("internal", "yaml", "stub.go"), []byte("package yaml\n"), 0644); err != nil {
+		t.Fatal(err)
+	}
 	if err := os.MkdirAll("handlers", 0755); err != nil {
 		t.Fatal(err)
 	}
@@ -127,5 +143,42 @@ endpoints:
 	}
 	if strings.TrimSpace(string(data)) != strings.TrimSpace(initial) {
 		t.Fatal("existing handler file should be kept as-is")
+	}
+}
+
+func TestGenerateRefusesFullServerWithoutLocalDeps(t *testing.T) {
+	orig, _ := os.Getwd()
+	dir := t.TempDir()
+	_ = os.Chdir(dir)
+	defer os.Chdir(orig)
+
+	goMod := "module github.com/example/consumer\n\ngo 1.22\n"
+	if err := os.WriteFile("go.mod", []byte(goMod), 0644); err != nil {
+		t.Fatal(err)
+	}
+	api := `version: "1"
+basePath: /api
+endpoints:
+  - method: GET
+    path: /health
+    handler: Health
+    auth: false
+`
+	if err := os.WriteFile("api.yaml", []byte(api), 0644); err != nil {
+		t.Fatal(err)
+	}
+	err := Generate("api.yaml", GenerateOptions{
+		HandlersDir: "handlers",
+		ServerDir:   "server",
+		Module:      "github.com/example/consumer",
+	})
+	if err == nil {
+		t.Fatal("expected error when middleware/internal/yaml are missing")
+	}
+	if !strings.Contains(err.Error(), "--handlers-only") {
+		t.Fatalf("error should mention --handlers-only: %v", err)
+	}
+	if _, statErr := os.Stat(filepath.Join("server", "server.go")); statErr == nil {
+		t.Fatal("server.go should not be written when deps are missing")
 	}
 }

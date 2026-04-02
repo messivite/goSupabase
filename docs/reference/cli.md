@@ -9,7 +9,7 @@
 | `gosupabase setup` | Interactive wizard for `.env`, `.gosupabase.yaml`, and optional deploy templates |
 | `gosupabase setup --from-file <path>` | Import config from an env-style file |
 | `gosupabase add endpoint "METHOD /path" [--auth]` | Add an endpoint to `api.yaml` |
-| `gosupabase gen [flags]` | Generate handler stubs and server code |
+| `gosupabase gen [flags]` | Generate handler stubs; local `server.go` only if `middleware/` + `internal/yaml/` exist (see below) |
 | `gosupabase dev` | Run `cmd/server` and auto-restart on file changes |
 | `gosupabase list` | List all defined endpoints |
 | `gosupabase help` | Show usage information |
@@ -72,6 +72,8 @@ gosupabase gen --server-dir pkg/server --handlers-dir pkg/handler
 | `--server-dir DIR` | Override server output directory |
 | `--handlers-dir DIR` | Override handlers output directory |
 | `--handlers-only` | Generate only handler stubs (skip server) |
+
+Without `--handlers-only`, the generator would write `<serverDir>/server.go` importing your module’s **`middleware/`** and **`internal/yaml/`** packages. **`gosupabase gen` refuses** to create that file unless each tree contains at least one `.go` file and a `go.mod` is found by walking up from the current working directory. Otherwise you get an error pointing to **`--handlers-only`** and the published **`github.com/messivite/gosupabase/server`** in `cmd/server` (see [Quick Start](/guide/quick-start)).
 
 Existing handler files are never overwritten — only missing ones are created.
 

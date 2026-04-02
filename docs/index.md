@@ -22,7 +22,7 @@ features:
     details: Define endpoints in a single api.yaml — the source of truth for routes, auth, and role guards.
   - icon: ⚡
     title: Code Generation
-    details: Generate handler stubs and server wiring from YAML with one command.
+    details: Generate handler stubs from YAML; full local server wiring only when your module includes middleware and yaml packages — library apps use handlers-only mode.
   - icon: 🔄
     title: Runtime Routing
     details: api.yaml is loaded at startup. Add endpoints without regenerating server code.
