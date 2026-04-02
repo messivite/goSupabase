@@ -19,7 +19,9 @@ go run ./cmd/server
 ## Flow 2: Existing project integration
 
 ```bash
+go mod init github.com/you/repo   # if not already
 gosupabase init
+go get github.com/messivite/gosupabase@latest && go mod tidy
 gosupabase setup --from-file ./supabase.env
 gosupabase add endpoint "GET /health"
 gosupabase add endpoint "PATCH /tracks/:id" --auth

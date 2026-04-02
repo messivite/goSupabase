@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -440,7 +441,21 @@ func cmdInit() {
 		fmt.Println("  created .env.example")
 	}
 
-	fmt.Println("\nDone! Next: gosupabase add endpoint \"GET /items\" --auth")
+	createdMain, err := scaffold.EnsureConsumerCmdServer(".")
+	switch {
+	case errors.Is(err, scaffold.ErrNoGoMod):
+		fmt.Println("  hint: no go.mod — run `go mod init <module>` then `gosupabase init` again to create cmd/server/main.go")
+	case err != nil:
+		fmt.Fprintf(os.Stderr, "  warning: cmd/server: %v\n", err)
+	case createdMain:
+		fmt.Println("  created cmd/server/main.go (uses github.com/messivite/gosupabase server + config)")
+	default:
+		fmt.Println("  cmd/server/main.go already exists")
+	}
+
+	fmt.Println("\nDone! Next: go get github.com/messivite/gosupabase@latest && go mod tidy")
+	fmt.Println("        gosupabase gen --handlers-only   # or gosupabase gen")
+	fmt.Println("        gosupabase dev   # or go run ./cmd/server")
 }
 
 func cmdSetup(args []string) {

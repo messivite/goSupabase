@@ -16,13 +16,18 @@ This scaffolds a complete project structure with `api.yaml`, handler stubs, a se
 
 ## Existing Project
 
+You need **`go.mod`** first (`go mod init <module>`).
+
 ```bash
-gosupabase init          # creates api.yaml + .env.example
-gosupabase setup         # creates .env + .gosupabase.yaml (interactive wizard)
+gosupabase init          # api.yaml, .env.example, cmd/server/main.go (library server)
+go get github.com/messivite/gosupabase@latest && go mod tidy
+gosupabase setup         # .env + .gosupabase.yaml
 gosupabase add endpoint "POST /tracks" --auth
-gosupabase gen
+gosupabase gen --handlers-only
 go run ./cmd/server
 ```
+
+Use **`gen --handlers-only`** so routing stays in the published `server` package; full `gen` also writes a local `server/server.go` that expects vendored `middleware` (advanced).
 
 ## Hot-Reload Development
 

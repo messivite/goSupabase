@@ -62,13 +62,18 @@ go run ./cmd/server
 
 ### Existing Project
 
+You need a `go.mod` first (`go mod init <module>`). Then:
+
 ```bash
-gosupabase init          # creates api.yaml + .env.example
+gosupabase init          # api.yaml, .env.example, and cmd/server/main.go (uses library server + config)
+go get github.com/messivite/gosupabase@latest && go mod tidy
 gosupabase setup         # creates .env + .gosupabase.yaml
 gosupabase add endpoint "POST /tracks" --auth
-gosupabase gen
+gosupabase gen --handlers-only   # recommended: handlers only (server comes from the module)
 go run ./cmd/server
 ```
+
+If `go.mod` is missing when you run `init`, you get a hint to run `go mod init` and `init` again so `cmd/server` can be created.
 
 Hot-reload development:
 
