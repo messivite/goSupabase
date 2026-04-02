@@ -9,13 +9,17 @@ goSupaBase is a CLI toolkit and runtime library for building Go APIs backed by [
 - **Runtime routing** — `api.yaml` loaded at startup, no regeneration needed for new endpoints
 - **Supabase JWT auth** — HS256/ES256 (JWKS) with claims context and role guards
 - **Configurable output** — custom directories via flags, `.gosupabase.yaml`, or `api.yaml`
-- **Handlers-only mode** — generate stubs without touching the server
+- **Handlers-only mode** — generate stubs without local `server.go` (library consumers); full `gen` adds `server.go` only when local `middleware/` and `internal/yaml/` exist
 - **Deploy scaffolding** — Vercel, Fly.io, Railway, and Render configs out of the box
 
 ## How It Works
 
+**Full scaffold** (`gosupabase new`): handlers + optional local `server.go` (when `middleware/` and `internal/yaml/` exist).
+
+**Library app** (`go get` + `gosupabase init`): `gosupabase gen --handlers-only` → `handlers/` only; routing lives in **`github.com/messivite/gosupabase/server`**.
+
 ```
-api.yaml ──→ gosupabase gen ──→ handlers/ + server/
+api.yaml ──→ gosupabase gen ──→ handlers/  (+ local server.go only if deps exist)
                                      │
                                      ▼
                             go run ./cmd/server
@@ -26,7 +30,7 @@ api.yaml ──→ gosupabase gen ──→ handlers/ + server/
 ```
 
 1. Define endpoints in `api.yaml` (method, path, handler name, auth, roles).
-2. Run `gosupabase gen` to scaffold handler functions and server code.
+2. Run `gosupabase gen` (full) or `gosupabase gen --handlers-only` (library consumers) to scaffold handler functions; full `gen` also writes local `server.go` only when the CLI detects the required local packages.
 3. Implement your business logic in the generated handler files.
 4. The server loads `api.yaml` at startup and wires routes through a handler registry — no code regeneration needed when you add new endpoints.
 

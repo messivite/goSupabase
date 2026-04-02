@@ -39,6 +39,10 @@ Gen flags:
   --server-dir DIR       Override server output directory
   --handlers-dir DIR     Override handlers output directory
   --handlers-only        Generate only handler stubs (skip server)
+
+  Full server generation (without --handlers-only) writes server.go that imports
+  your module's middleware/ and internal/yaml/. Those packages must exist under
+  the module root; library consumers should use --handlers-only instead.
 `
 
 func main() {

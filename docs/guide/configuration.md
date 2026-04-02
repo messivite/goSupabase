@@ -35,12 +35,14 @@ output:
 gosupabase gen --server-dir pkg/server --handlers-dir pkg/handler
 ```
 
+Full `gen` still requires **`middleware/`** and **`internal/yaml/`** under your module root; otherwise the command fails and suggests `--handlers-only`.
+
 ## Handlers-only mode
 
-For projects with a custom server setup, generate only handler stubs and the registry:
+For apps that depend on **`github.com/messivite/gosupabase`** and run the published server from `cmd/server`, generate only handler stubs and the registry:
 
 ```bash
 gosupabase gen --handlers-only
 ```
 
-This leaves your server code untouched.
+No local `server.go` is written, so you do not need vendored `middleware` / `internal/yaml` in your module. You can combine with `--handlers-dir` (and optionally `--server-dir` for future full-gen use) as needed.

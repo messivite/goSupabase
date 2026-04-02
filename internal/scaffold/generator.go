@@ -67,6 +67,18 @@ func Generate(apiPath string, opts GenerateOptions) error {
 		return nil
 	}
 
+	wd, err := os.Getwd()
+	if err != nil {
+		return fmt.Errorf("getwd: %w", err)
+	}
+	modRoot, err := findModuleRoot(wd)
+	if err != nil {
+		return fmt.Errorf("server generation needs a Go module (go.mod) reachable from the current directory: %w\n  hint: run from your module root, or use --handlers-only and wire github.com/messivite/gosupabase/server in cmd/server", err)
+	}
+	if !hasLocalServerGenDeps(modRoot) {
+		return fmt.Errorf("refusing to write %s/server.go: module root %q has no local middleware/ and/or internal/yaml/ packages (the full server template imports them).\n\n  If you use github.com/messivite/gosupabase as a library, run:\n    gosupabase gen --handlers-only\n  and keep routing in the published server package (see README \"Existing Project\").\n\n  To vendor a full server here, add those packages first (e.g. copy from the goSupabase repository).", opts.ServerDir, modRoot)
+	}
+
 	if err := os.MkdirAll(opts.ServerDir, 0755); err != nil {
 		return fmt.Errorf("creating server dir: %w", err)
 	}
@@ -222,4 +234,42 @@ func detectModule() string {
 		}
 	}
 	return "github.com/example/myapp"
+}
+
+// findModuleRoot walks up from start until a directory containing go.mod is found.
+func findModuleRoot(start string) (string, error) {
+	dir := start
+	for {
+		st, err := os.Stat(filepath.Join(dir, "go.mod"))
+		if err == nil && !st.IsDir() {
+			return dir, nil
+		}
+		parent := filepath.Dir(dir)
+		if parent == dir {
+			return "", errors.New("go.mod not found")
+		}
+		dir = parent
+	}
+}
+
+// hasLocalServerGenDeps reports whether the full server template's local imports exist.
+func hasLocalServerGenDeps(moduleRoot string) bool {
+	return dirHasGoFile(filepath.Join(moduleRoot, "middleware")) &&
+		dirHasGoFile(filepath.Join(moduleRoot, "internal", "yaml"))
+}
+
+func dirHasGoFile(dir string) bool {
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		return false
+	}
+	for _, e := range entries {
+		if e.IsDir() {
+			continue
+		}
+		if strings.HasSuffix(e.Name(), ".go") {
+			return true
+		}
+	}
+	return false
 }

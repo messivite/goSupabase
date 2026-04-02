@@ -44,7 +44,7 @@
 - **Runtime routing** — `api.yaml` loaded at startup, no regeneration needed for new endpoints
 - **Supabase JWT auth** — HS256/ES256 (JWKS) with claims context and role guards
 - **Configurable output** — custom directories via flags, `.gosupabase.yaml`, or `api.yaml`
-- **Handlers-only mode** — generate stubs without touching the server
+- **Handlers-only mode** — generate stubs without local `server.go` (recommended for `go get` consumers); full `gen` writes `server.go` only when `middleware/` and `internal/yaml/` exist under your module
 
 ## Quick Start
 
@@ -74,6 +74,15 @@ go run ./cmd/server
 ```
 
 If `go.mod` is missing when you run `init`, you get a hint to run `go mod init` and `init` again so `cmd/server` can be created.
+
+### Code generation: full server vs handlers-only
+
+| Mode | What it does | When to use |
+|------|----------------|-------------|
+| **`gosupabase gen --handlers-only`** | Handler stubs + `handlers/registry.go` only | **Library consumers** — you depend on `github.com/messivite/gosupabase` and run the published `server` package from `cmd/server` (as `gosupabase init` wires it). |
+| **`gosupabase gen`** (full) | Same handlers **plus** `<serverDir>/server.go` | Projects that already have **`middleware/`** and **`internal/yaml/`** under the module root — e.g. **`gosupabase new`** scaffolds, or you copied those trees from this repo. |
+
+Full `gen` writes `server.go` that imports your module’s `middleware` and `internal/yaml`. **The CLI will not create that file** if those packages are missing, or if it cannot find `go.mod` by walking up from the current directory — you’ll get an error that points you to `--handlers-only`. Always run `gen` from inside your Go module (project root is fine).
 
 Hot-reload development:
 
@@ -132,20 +141,24 @@ go test ./...
 
 ### Flow 3: Custom output layout
 
+Full `gen` (same rules as above: local `middleware/` + `internal/yaml/` required for `server.go`):
+
 ```bash
 gosupabase gen --server-dir pkg/server --handlers-dir pkg/handler
 ```
+
+For library-style apps, use `--handlers-only` and keep custom dirs via `.gosupabase.yaml` / `api.yaml` if needed.
 
 ## CLI Commands
 
 | Command | Description |
 |---------|-------------|
 | `gosupabase new <name>` | Scaffold a new project with all directories, `api.yaml`, `Makefile`, `go.mod` |
-| `gosupabase init` | Initialize goSupabase in an existing project (creates `api.yaml`) |
+| `gosupabase init` | Initialize in an existing project: `api.yaml`, `.env.example`, and `cmd/server/main.go` when `go.mod` exists |
 | `gosupabase setup` | Interactive wizard for `.env`, `.gosupabase.yaml`, and optional deploy templates |
 | `gosupabase setup --from-file <path>` | Import config from an env-style file (incl. `DEPLOY_TARGET`) |
 | `gosupabase add endpoint "METHOD /path" [--auth]` | Add an endpoint to `api.yaml` |
-| `gosupabase gen [flags]` | Generate handler stubs and server code |
+| `gosupabase gen [flags]` | Generate handler stubs; optional local `server.go` (see [full vs handlers-only](#code-generation-full-server-vs-handlers-only)) |
 | `gosupabase dev` | Run `cmd/server` and auto-restart when watched files change |
 | `gosupabase list` | List all defined endpoints |
 
@@ -156,6 +169,8 @@ gosupabase gen --server-dir pkg/server --handlers-dir pkg/handler
 --handlers-dir DIR     Override handlers output directory
 --handlers-only        Generate only handler stubs (skip server)
 ```
+
+Without `--handlers-only`, the generator only writes `server.go` if your **module root** contains `middleware/*.go` and `internal/yaml/*.go` (and `go.mod` is discoverable from the current directory). Otherwise the command **fails with a hint** to use `--handlers-only` and the published `github.com/messivite/gosupabase/server`.
 
 ## Setup
 
@@ -408,13 +423,15 @@ Output directory resolution follows this precedence (highest to lowest):
 
 ## Handlers-Only Mode
 
-For projects with a custom server setup:
+Default path for **apps that `go get github.com/messivite/gosupabase`**:
 
 ```bash
 gosupabase gen --handlers-only
 ```
 
-This generates only handler stubs and the registry, leaving your server code untouched.
+This creates or updates handler stubs and `handlers/registry.go` only. It does **not** write a local `server/server.go`, so you avoid broken imports for `middleware` / `internal/yaml` that only exist inside the goSupabase **repository**, not in your app module.
+
+Use **full** `gosupabase gen` only when you maintain those packages in your repo (typically after `gosupabase new`, or by vendoring them from this project). If you run full `gen` without them, the CLI exits with an error instead of generating a broken tree.
 
 ## Environment Variables
 
